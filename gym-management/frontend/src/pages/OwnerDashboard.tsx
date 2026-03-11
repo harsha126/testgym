@@ -1,0 +1,516 @@
+import React, { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+    Table,
+    Input,
+    Button,
+    Space,
+    Tag,
+    Typography,
+    Layout,
+    Select,
+    Upload,
+    message,
+    Modal,
+    Card,
+    Row,
+    Col,
+    Statistic,
+} from "antd";
+import {
+    SearchOutlined,
+    UploadOutlined,
+    DownloadOutlined,
+    UserAddOutlined,
+    LogoutOutlined,
+    TeamOutlined,
+    CalendarOutlined,
+    WarningOutlined,
+} from "@ant-design/icons";
+import { useAuthStore } from "../stores/authStore";
+import { useUserStore } from "../stores/userStore";
+import { useDebounce } from "../hooks/useDebounce";
+import { importExcel, exportExcel } from "../api/excel";
+import { register } from "../api/auth";
+import NotificationBell from "../components/NotificationBell";
+import type { ColumnsType } from "antd/es/table";
+import type { User } from "../types";
+import dayjs from "dayjs";
+
+const { Header, Content } = Layout;
+const { Title, Text } = Typography;
+
+const OwnerDashboard: React.FC = () => {
+    const navigate = useNavigate();
+    const { name: ownerName, logout } = useAuthStore();
+    const {
+        users,
+        totalElements,
+        currentPage,
+        loading,
+        fetchUsers,
+        searchUsers,
+        searchResults,
+        searchLoading,
+    } = useUserStore();
+    const [searchText, setSearchText] = useState("");
+    const [registerModalVisible, setRegisterModalVisible] = useState(false);
+    const [registerForm, setRegisterForm] = useState({
+        name: "",
+        phone: "",
+        password: "",
+    });
+    const debouncedSearch = useDebounce(searchText, 300);
+
+    useEffect(() => {
+        fetchUsers();
+    }, []);
+
+    useEffect(() => {
+        if (debouncedSearch) {
+            searchUsers(debouncedSearch);
+        }
+    }, [debouncedSearch]);
+
+    const handleExport = async () => {
+        try {
+            const response = await exportExcel();
+            if (response.status === 204) {
+                message.info("No new data to export");
+                return;
+            }
+            const blob = new Blob([response.data], {
+                type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `gym_members_${dayjs().format("YYYY-MM-DD")}.xlsx`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+            message.success("Export downloaded");
+        } catch {
+            message.error("Export failed");
+        }
+    };
+
+    const handleImport = async (file: File) => {
+        try {
+            const response = await importExcel(file);
+            const data = response.data;
+            Modal.success({
+                title: "Import Complete",
+                content: (
+                    <div>
+                        <p>
+                            Imported: <strong>{data.imported}</strong>
+                        </p>
+                        <p>
+                            Skipped (duplicate): <strong>{data.skipped}</strong>
+                        </p>
+                        {data.errors?.length > 0 && (
+                            <p>
+                                Errors: <strong>{data.errors.length}</strong>
+                            </p>
+                        )}
+                    </div>
+                ),
+            });
+            fetchUsers();
+        } catch {
+            message.error("Import failed");
+        }
+        return false;
+    };
+
+    const handleRegister = async () => {
+        try {
+            await register(registerForm);
+            message.success("User registered successfully");
+            setRegisterModalVisible(false);
+            setRegisterForm({ name: "", phone: "", password: "" });
+            fetchUsers();
+        } catch (err: any) {
+            message.error(err.response?.data?.error || "Registration failed");
+        }
+    };
+
+    const handleLogout = () => {
+        logout();
+        navigate("/login");
+    };
+
+    // Dashboard stats
+    const activeUsers = users.filter(
+        (u) => u.subscriptionStatus === "ACTIVE",
+    ).length;
+    const expiringUsers = users.filter(
+        (u) => u.daysLeft !== undefined && u.daysLeft <= 3 && u.daysLeft > 0,
+    ).length;
+    const expiredUsers = users.filter(
+        (u) => u.daysLeft !== undefined && u.daysLeft <= 0,
+    ).length;
+
+    const columns: ColumnsType<User> = [
+        {
+            title: "Name",
+            dataIndex: "name",
+            key: "name",
+            render: (text: string) => <Text strong>{text}</Text>,
+        },
+        {
+            title: "Phone",
+            dataIndex: "phone",
+            key: "phone",
+        },
+        {
+            title: "Current Plan",
+            dataIndex: "currentPlan",
+            key: "currentPlan",
+            render: (text: string) =>
+                text || <Text type="secondary">No Plan</Text>,
+        },
+        {
+            title: "End Date",
+            dataIndex: "endDate",
+            key: "endDate",
+            render: (text: string) =>
+                text ? dayjs(text).format("DD MMM YYYY") : "-",
+        },
+        {
+            title: "Days Left",
+            dataIndex: "daysLeft",
+            key: "daysLeft",
+            render: (days: number | undefined) => {
+                if (days === undefined || days === null) return <Tag>N/A</Tag>;
+                let color = "green";
+                if (days <= 0) color = "red";
+                else if (days <= 3) color = "red";
+                else if (days <= 7) color = "orange";
+                return (
+                    <Tag color={color} style={{ fontWeight: 600 }}>
+                        {days <= 0 ? "Expired" : `${days} days`}
+                    </Tag>
+                );
+            },
+            sorter: (a, b) => (a.daysLeft ?? -1) - (b.daysLeft ?? -1),
+        },
+        {
+            title: "Status",
+            dataIndex: "subscriptionStatus",
+            key: "subscriptionStatus",
+            render: (status: string) => {
+                const colorMap: Record<string, string> = {
+                    ACTIVE: "green",
+                    EXPIRED: "red",
+                    CANCELLED: "default",
+                };
+                return status ? (
+                    <Tag color={colorMap[status] || "default"}>{status}</Tag>
+                ) : (
+                    <Tag>NONE</Tag>
+                );
+            },
+        },
+    ];
+
+    return (
+        <Layout style={{ minHeight: "100vh", background: "#f0f2f5" }}>
+            <Header
+                style={{
+                    background:
+                        "linear-gradient(90deg, #0544A4 0%, #032d6e 100%)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "0 24px",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                    position: "sticky",
+                    top: 0,
+                    zIndex: 100,
+                }}
+            >
+                <Space>
+                    <Title
+                        level={4}
+                        style={{
+                            color: "#fff",
+                            margin: 0,
+                            fontFamily: "'Old Standard TT', serif",
+                            letterSpacing: "1px",
+                        }}
+                    >
+                        IRON ADDICTS
+                    </Title>
+                    <Text
+                        style={{
+                            color: "rgba(255,255,255,0.7)",
+                            fontFamily: "'Gudea', sans-serif",
+                        }}
+                    >
+                        | Welcome, {ownerName}
+                    </Text>
+                </Space>
+                <Space size={12}>
+                    <NotificationBell />
+                    <Button
+                        type="text"
+                        icon={<LogoutOutlined style={{ color: "#fff" }} />}
+                        onClick={handleLogout}
+                        style={{ color: "#fff" }}
+                    >
+                        Logout
+                    </Button>
+                </Space>
+            </Header>
+
+            <Content
+                style={{
+                    padding: "24px",
+                    maxWidth: 1200,
+                    margin: "0 auto",
+                    width: "100%",
+                }}
+            >
+                {/* Stats Cards */}
+                <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+                    <Col xs={24} sm={8}>
+                        <Card
+                            style={{
+                                borderRadius: 12,
+                                boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                            }}
+                        >
+                            <Statistic
+                                title={
+                                    <Text
+                                        style={{
+                                            fontFamily: "'Gudea', sans-serif",
+                                        }}
+                                    >
+                                        Total Members
+                                    </Text>
+                                }
+                                value={totalElements}
+                                prefix={
+                                    <TeamOutlined
+                                        style={{ color: "#0544A4" }}
+                                    />
+                                }
+                                valueStyle={{
+                                    color: "#0544A4",
+                                    fontWeight: 700,
+                                }}
+                            />
+                        </Card>
+                    </Col>
+                    <Col xs={24} sm={8}>
+                        <Card
+                            style={{
+                                borderRadius: 12,
+                                boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                            }}
+                        >
+                            <Statistic
+                                title={
+                                    <Text
+                                        style={{
+                                            fontFamily: "'Gudea', sans-serif",
+                                        }}
+                                    >
+                                        Active Plans
+                                    </Text>
+                                }
+                                value={activeUsers}
+                                prefix={
+                                    <CalendarOutlined
+                                        style={{ color: "#52c41a" }}
+                                    />
+                                }
+                                valueStyle={{
+                                    color: "#52c41a",
+                                    fontWeight: 700,
+                                }}
+                            />
+                        </Card>
+                    </Col>
+                    <Col xs={24} sm={8}>
+                        <Card
+                            style={{
+                                borderRadius: 12,
+                                boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                            }}
+                        >
+                            <Statistic
+                                title={
+                                    <Text
+                                        style={{
+                                            fontFamily: "'Gudea', sans-serif",
+                                        }}
+                                    >
+                                        Expiring Soon
+                                    </Text>
+                                }
+                                value={expiringUsers}
+                                prefix={
+                                    <WarningOutlined
+                                        style={{ color: "#fa8c16" }}
+                                    />
+                                }
+                                valueStyle={{
+                                    color: "#fa8c16",
+                                    fontWeight: 700,
+                                }}
+                            />
+                        </Card>
+                    </Col>
+                </Row>
+
+                <Card
+                    style={{
+                        borderRadius: 12,
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                    }}
+                    title={
+                        <div
+                            style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                flexWrap: "wrap",
+                                gap: 12,
+                            }}
+                        >
+                            <Title
+                                level={4}
+                                style={{
+                                    margin: 0,
+                                    fontFamily: "'Gudea', sans-serif",
+                                }}
+                            >
+                                Members
+                            </Title>
+                            <Space wrap>
+                                <Select
+                                    showSearch
+                                    placeholder="Search members..."
+                                    filterOption={false}
+                                    onSearch={(value) => setSearchText(value)}
+                                    loading={searchLoading}
+                                    onSelect={(value: number) =>
+                                        navigate(`/owner/users/${value}`)
+                                    }
+                                    style={{ width: 250 }}
+                                    notFoundContent={
+                                        searchText ? "No results" : null
+                                    }
+                                    suffixIcon={<SearchOutlined />}
+                                    allowClear
+                                    onClear={() => setSearchText("")}
+                                >
+                                    {searchResults.map((u) => (
+                                        <Select.Option key={u.id} value={u.id}>
+                                            {u.name} ({u.phone})
+                                        </Select.Option>
+                                    ))}
+                                </Select>
+                                <Button
+                                    icon={<UserAddOutlined />}
+                                    type="primary"
+                                    style={{
+                                        background: "#0544A4",
+                                        borderColor: "#0544A4",
+                                    }}
+                                    onClick={() =>
+                                        setRegisterModalVisible(true)
+                                    }
+                                >
+                                    Add Member
+                                </Button>
+                                <Upload
+                                    accept=".xlsx"
+                                    showUploadList={false}
+                                    beforeUpload={handleImport}
+                                >
+                                    <Button icon={<UploadOutlined />}>
+                                        Import
+                                    </Button>
+                                </Upload>
+                                <Button
+                                    icon={<DownloadOutlined />}
+                                    onClick={handleExport}
+                                >
+                                    Export
+                                </Button>
+                            </Space>
+                        </div>
+                    }
+                >
+                    <Table
+                        columns={columns}
+                        dataSource={users}
+                        rowKey="id"
+                        loading={loading}
+                        pagination={{
+                            total: totalElements,
+                            current: currentPage + 1,
+                            pageSize: 20,
+                            showSizeChanger: false,
+                            onChange: (page) => fetchUsers(page - 1),
+                        }}
+                        onRow={(record) => ({
+                            onClick: () =>
+                                navigate(`/owner/users/${record.id}`),
+                            style: { cursor: "pointer" },
+                        })}
+                        style={{ fontFamily: "'Gudea', sans-serif" }}
+                    />
+                </Card>
+            </Content>
+
+            {/* Register Modal */}
+            <Modal
+                title="Register New Member"
+                open={registerModalVisible}
+                onCancel={() => setRegisterModalVisible(false)}
+                onOk={handleRegister}
+                okText="Register"
+            >
+                <Space direction="vertical" style={{ width: "100%" }} size={12}>
+                    <Input
+                        placeholder="Name"
+                        value={registerForm.name}
+                        onChange={(e) =>
+                            setRegisterForm({
+                                ...registerForm,
+                                name: e.target.value,
+                            })
+                        }
+                    />
+                    <Input
+                        placeholder="Phone"
+                        value={registerForm.phone}
+                        onChange={(e) =>
+                            setRegisterForm({
+                                ...registerForm,
+                                phone: e.target.value,
+                            })
+                        }
+                    />
+                    <Input.Password
+                        placeholder="Password (optional, defaults to last 4 digits + 'gym')"
+                        value={registerForm.password}
+                        onChange={(e) =>
+                            setRegisterForm({
+                                ...registerForm,
+                                password: e.target.value,
+                            })
+                        }
+                    />
+                </Space>
+            </Modal>
+        </Layout>
+    );
+};
+
+export default OwnerDashboard;

@@ -1,0 +1,37 @@
+server:
+    port: 8080
+
+spring:
+    datasource:
+        url: jdbc:postgresql://localhost:5432/gymdb
+        username: gymuser
+        password: gympass
+        driver-class-name: org.postgresql.Driver
+    jpa:
+        hibernate:
+            ddl-auto: validate
+        show-sql: false
+        properties:
+            hibernate:
+                dialect: org.hibernate.dialect.PostgreSQLDialect
+                format_sql: true
+    flyway:
+        enabled: true
+        locations: classpath:db/migration
+    servlet:
+        multipart:
+            max-file-size: 10MB
+            max-request-size: 10MB
+
+app:
+    jwt:
+        secret: gym-management-super-secret-key-that-is-at-least-256-bits-long-for-hs256
+        expiration-ms: 86400000 # 24 hours
+    vapid:
+        public-key: BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkOs-qy_kGRbKfiLbE0Dg1JiV4QUwJ7VKLhYMneJo0
+        private-key: UUxI4O8-FbRouAevSmBQ6o18hgE4nSG3qwvJTfKc-ls
+        subject: mailto:admin@ironaddicts.com
+
+logging:
+    level:
+        com.gym: DEBUG
