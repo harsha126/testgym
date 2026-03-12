@@ -212,7 +212,7 @@ const OwnerDashboard: React.FC = () => {
 
             <Content
                 style={{
-                    padding: "24px",
+                    padding: "clamp(12px, 3vw, 24px)",
                     maxWidth: 1200,
                     margin: "0 auto",
                     width: "100%",
@@ -322,9 +322,11 @@ const OwnerDashboard: React.FC = () => {
                             style={{
                                 display: "flex",
                                 justifyContent: "space-between",
-                                alignItems: "center",
+                                alignItems: "flex-start",
                                 flexWrap: "wrap",
                                 gap: 12,
+                                paddingTop: 8,
+                                paddingBottom: 8,
                             }}
                         >
                             <Title
@@ -346,7 +348,7 @@ const OwnerDashboard: React.FC = () => {
                                     onSelect={(value: number) =>
                                         navigate(`/owner/users/${value}`)
                                     }
-                                    style={{ width: 250 }}
+                                    style={{ width: "min(250px, 100%)" }}
                                     notFoundContent={
                                         searchText ? "No results" : null
                                     }
@@ -397,6 +399,7 @@ const OwnerDashboard: React.FC = () => {
                         dataSource={users}
                         rowKey="id"
                         loading={loading}
+                        scroll={{ x: 600 }}
                         pagination={{
                             total: totalElements,
                             current: currentPage + 1,

@@ -19,11 +19,13 @@ const headerStyle: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: "0 24px",
+    padding: "0 16px",
     boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
     position: "sticky",
     top: 0,
     zIndex: 100,
+    height: 56,
+    lineHeight: "56px",
 };
 
 const AppHeader: React.FC<AppHeaderProps> = ({
@@ -65,7 +67,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                         style={{
                             color: "rgba(255,255,255,0.7)",
                             fontFamily: "'Gudea', sans-serif",
+                            display: "none",
                         }}
+                        className="header-welcome"
                     >
                         | Welcome, {name}
                     </Text>
@@ -78,9 +82,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                         type="text"
                         icon={<LogoutOutlined style={{ color: "#fff" }} />}
                         onClick={handleLogout}
-                        style={{ color: "#fff" }}
+                        style={{ color: "#fff", padding: "4px 8px" }}
                     >
-                        Logout
+                        <span className="logout-text">Logout</span>
                     </Button>
                 )}
             </Space>

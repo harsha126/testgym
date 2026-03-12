@@ -74,14 +74,14 @@ const LoginPage: React.FC = () => {
 
             <Card
                 style={{
-                    width: 420,
+                    width: "min(420px, 92vw)",
                     borderRadius: 16,
                     boxShadow: "0 20px 60px rgba(0,0,0,0.4)",
                     border: "none",
                     background: "rgba(255,255,255,0.97)",
                     backdropFilter: "blur(20px)",
                 }}
-                bodyStyle={{ padding: "40px 36px" }}
+                bodyStyle={{ padding: "clamp(24px, 6vw, 40px) clamp(20px, 6vw, 36px)" }}
             >
                 <Space
                     direction="vertical"

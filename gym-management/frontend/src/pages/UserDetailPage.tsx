@@ -133,7 +133,7 @@ const UserDetailPage: React.FC = () => {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    padding: "0 24px",
+                    padding: "0 16px",
                     boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
                     position: "sticky",
                     top: 0,
@@ -162,7 +162,7 @@ const UserDetailPage: React.FC = () => {
 
             <Content
                 style={{
-                    padding: 24,
+                    padding: "clamp(12px, 3vw, 24px)",
                     maxWidth: 1200,
                     margin: "0 auto",
                     width: "100%",
@@ -267,13 +267,13 @@ const UserDetailPage: React.FC = () => {
                                     onClick={() => setSubModalVisible(true)}
                                     style={{ background: "#0544A4" }}
                                 >
-                                    New Subscription
+                                    <span className="btn-text-hide-xs">New Subscription</span>
                                 </Button>
                             }
                         >
                             {currentSubscription ? (
                                 <Row gutter={16}>
-                                    <Col span={12}>
+                                    <Col xs={24} sm={12}>
                                         <Descriptions column={1} size="small">
                                             <Descriptions.Item label="Plan">
                                                 <Tag color="blue">
@@ -306,7 +306,7 @@ const UserDetailPage: React.FC = () => {
                                             </Descriptions.Item>
                                         </Descriptions>
                                     </Col>
-                                    <Col span={12}>
+                                    <Col xs={24} sm={12}>
                                         <div
                                             style={{
                                                 textAlign: "center",
@@ -421,6 +421,7 @@ const UserDetailPage: React.FC = () => {
                         columns={paymentColumns}
                         dataSource={payments}
                         rowKey="id"
+                        scroll={{ x: 500 }}
                         pagination={{ pageSize: 10 }}
                         locale={{ emptyText: "No payments recorded" }}
                     />

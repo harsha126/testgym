@@ -102,7 +102,7 @@ const SubscriptionModal: React.FC<Props> = ({
             onCancel={onClose}
             onOk={handleSubmit}
             confirmLoading={loading}
-            width={520}
+            width="min(520px, 96vw)"
             okText="Create Subscription"
         >
             <Form form={form} layout="vertical">

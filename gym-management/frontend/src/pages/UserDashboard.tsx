@@ -83,7 +83,7 @@ const UserDashboard: React.FC = () => {
 
             <Content
                 style={{
-                    padding: 24,
+                    padding: "clamp(12px, 3vw, 24px)",
                     maxWidth: 900,
                     margin: "0 auto",
                     width: "100%",
@@ -151,7 +151,7 @@ const UserDashboard: React.FC = () => {
                             <Col
                                 xs={24}
                                 sm={10}
-                                style={{ textAlign: "center" }}
+                                style={{ textAlign: "center", paddingTop: 8 }}
                             >
                                 <Progress
                                     type="circle"
@@ -167,7 +167,7 @@ const UserDashboard: React.FC = () => {
                                               ? "#fa8c16"
                                               : "#52c41a"
                                     }
-                                    size={120}
+                                    size={100}
                                 />
                             </Col>
                         </Row>
@@ -240,6 +240,7 @@ const UserDashboard: React.FC = () => {
                         columns={paymentColumns}
                         dataSource={payments}
                         rowKey="id"
+                        scroll={{ x: 500 }}
                         pagination={{ pageSize: 10 }}
                         locale={{ emptyText: "No payments recorded" }}
                     />
