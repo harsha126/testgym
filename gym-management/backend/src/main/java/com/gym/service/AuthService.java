@@ -4,6 +4,7 @@ import com.gym.dto.LoginRequest;
 import com.gym.dto.LoginResponse;
 import com.gym.dto.RegisterRequest;
 import com.gym.dto.UserDTO;
+import com.gym.entity.RefreshToken;
 import com.gym.entity.User;
 import com.gym.exception.UnauthorizedException;
 import com.gym.repository.UserRepository;
@@ -19,8 +20,11 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
+    private final RefreshTokenService refreshTokenService;
 
-    public LoginResponse login(LoginRequest request) {
+    public record LoginResult(LoginResponse loginResponse, String rawRefreshToken) {}
+
+    public LoginResult login(LoginRequest request) {
         User user = userRepository.findByPhone(request.getPhone())
                 .orElseThrow(() -> new UnauthorizedException("Invalid phone or password"));
 
@@ -32,9 +36,26 @@ public class AuthService {
             throw new UnauthorizedException("Invalid phone or password");
         }
 
-        String token = tokenProvider.generateToken(user.getId(), user.getPhone(), user.getRole().name());
+        String accessToken = tokenProvider.generateToken(user.getId(), user.getPhone(), user.getRole().name());
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
 
-        return new LoginResponse(token, user.getId(), user.getName(), user.getRole().name(), user.getPhone());
+        LoginResponse response = new LoginResponse(accessToken, user.getId(), user.getName(), user.getRole().name(), user.getPhone());
+        return new LoginResult(response, refreshToken.getToken());
+    }
+
+    public record RefreshResult(String accessToken, String rawRefreshToken) {}
+
+    public RefreshResult refresh(String rawRefreshToken) {
+        RefreshToken rotated = refreshTokenService.validateAndRotate(rawRefreshToken);
+        User user = rotated.getUser();
+        String newAccessToken = tokenProvider.generateToken(user.getId(), user.getPhone(), user.getRole().name());
+        return new RefreshResult(newAccessToken, rotated.getToken());
+    }
+
+    public void logout(String rawRefreshToken) {
+        if (rawRefreshToken != null) {
+            refreshTokenService.deleteByToken(rawRefreshToken);
+        }
     }
 
     public UserDTO register(RegisterRequest request) {
@@ -44,7 +65,6 @@ public class AuthService {
 
         String password = request.getPassword();
         if (password == null || password.isBlank()) {
-            // Default password: last 4 digits of phone + "gym"
             String phone = request.getPhone();
             password = phone.substring(Math.max(0, phone.length() - 4)) + "gym";
         }

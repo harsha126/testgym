@@ -1,5 +1,4 @@
 import React, { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import {
     Card,
     Typography,
@@ -8,24 +7,21 @@ import {
     Table,
     Timeline,
     Layout,
-    Space,
-    Button,
     Row,
     Col,
     Empty,
 } from "antd";
-import { LogoutOutlined, CalendarOutlined } from "@ant-design/icons";
+import { CalendarOutlined } from "@ant-design/icons";
 import { useAuthStore } from "../stores/authStore";
 import { useSubscriptionStore } from "../stores/subscriptionStore";
-import NotificationBell from "../components/NotificationBell";
+import AppHeader from "../components/AppHeader";
 import dayjs from "dayjs";
 
-const { Header, Content } = Layout;
-const { Title, Text } = Typography;
+const { Content } = Layout;
+const { Text } = Typography;
 
 const UserDashboard: React.FC = () => {
-    const navigate = useNavigate();
-    const { userId, name, logout } = useAuthStore();
+    const { userId } = useAuthStore();
     const {
         subscriptions,
         currentSubscription,
@@ -42,11 +38,6 @@ const UserDashboard: React.FC = () => {
             fetchPayments(userId);
         }
     }, [userId]);
-
-    const handleLogout = () => {
-        logout();
-        navigate("/login");
-    };
 
     const daysProgress = currentSubscription
         ? Math.min(
@@ -88,53 +79,7 @@ const UserDashboard: React.FC = () => {
 
     return (
         <Layout style={{ minHeight: "100vh", background: "#f0f2f5" }}>
-            <Header
-                style={{
-                    background:
-                        "linear-gradient(90deg, #0544A4 0%, #032d6e 100%)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "0 24px",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                    position: "sticky",
-                    top: 0,
-                    zIndex: 100,
-                }}
-            >
-                <Space>
-                    <Title
-                        level={4}
-                        style={{
-                            color: "#fff",
-                            margin: 0,
-                            fontFamily: "'Old Standard TT', serif",
-                            letterSpacing: "1px",
-                        }}
-                    >
-                        IRON ADDICTS
-                    </Title>
-                    <Text
-                        style={{
-                            color: "rgba(255,255,255,0.7)",
-                            fontFamily: "'Gudea', sans-serif",
-                        }}
-                    >
-                        | Welcome, {name}
-                    </Text>
-                </Space>
-                <Space size={12}>
-                    <NotificationBell />
-                    <Button
-                        type="text"
-                        icon={<LogoutOutlined style={{ color: "#fff" }} />}
-                        onClick={handleLogout}
-                        style={{ color: "#fff" }}
-                    >
-                        Logout
-                    </Button>
-                </Space>
-            </Header>
+            <AppHeader showLogout />
 
             <Content
                 style={{

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ConfigProvider } from "antd";
 import { useAuthStore } from "./stores/authStore";
@@ -9,11 +9,7 @@ import UserDetailPage from "./pages/UserDetailPage";
 import UserDashboard from "./pages/UserDashboard";
 
 const App: React.FC = () => {
-    const { initFromStorage, isAuthenticated, role } = useAuthStore();
-
-    useEffect(() => {
-        initFromStorage();
-    }, []);
+    const { isAuthenticated, role } = useAuthStore();
 
     return (
         <ConfigProvider

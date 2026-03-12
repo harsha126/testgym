@@ -26,7 +26,8 @@ spring:
 app:
     jwt:
         secret: gym-management-super-secret-key-that-is-at-least-256-bits-long-for-hs256
-        expiration-ms: 86400000 # 24 hours
+        expiration-ms: 900000 # 15 minutes
+        refresh-expiration-ms: 604800000 # 7 days
     vapid:
         public-key: BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkOs-qy_kGRbKfiLbE0Dg1JiV4QUwJ7VKLhYMneJo0
         private-key: UUxI4O8-FbRouAevSmBQ6o18hgE4nSG3qwvJTfKc-ls

@@ -356,6 +356,7 @@ const UserDetailPage: React.FC = () => {
                         borderRadius: 12,
                         boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
                         marginBottom: 16,
+                        marginTop: 16,
                     }}
                 >
                     <Timeline
