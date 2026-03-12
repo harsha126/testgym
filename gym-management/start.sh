@@ -79,7 +79,7 @@ start_services() {
     echo -e "${GREEN}══════════════════════════════════════════════${NC}"
     echo ""
     echo -e "  Frontend  →  ${GREEN}http://localhost${NC}"
-    echo -e "  Backend   →  ${GREEN}http://localhost:8080${NC}"
+    echo -e "  Backend   →  ${GREEN}http://localhost:${BACKEND_PORT}${NC}"
     echo -e "  Database  →  ${GREEN}localhost:5432${NC}"
     echo ""
     echo -e "  Stop:  ${YELLOW}./start.sh --stop${NC}"
