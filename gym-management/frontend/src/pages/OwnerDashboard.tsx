@@ -25,6 +25,7 @@ import {
     TeamOutlined,
     CalendarOutlined,
     WarningOutlined,
+    DollarCircleOutlined,
 } from "@ant-design/icons";
 import { useUserStore } from "../stores/userStore";
 import { useDebounce } from "../hooks/useDebounce";
@@ -389,6 +390,14 @@ const OwnerDashboard: React.FC = () => {
                                     onClick={handleExport}
                                 >
                                     Export
+                                </Button>
+                                <Button
+                                    icon={<DollarCircleOutlined />}
+                                    onClick={() =>
+                                        navigate("/owner/payment-history")
+                                    }
+                                >
+                                    Payment History
                                 </Button>
                             </Space>
                         </div>

@@ -7,6 +7,7 @@ import LoginPage from "./pages/LoginPage";
 import OwnerDashboard from "./pages/OwnerDashboard";
 import UserDetailPage from "./pages/UserDetailPage";
 import UserDashboard from "./pages/UserDashboard";
+import PaymentHistoryPage from "./pages/PaymentHistoryPage";
 
 const App: React.FC = () => {
     const { isAuthenticated, role } = useAuthStore();
@@ -43,6 +44,14 @@ const App: React.FC = () => {
                         element={
                             <ProtectedRoute requiredRole="OWNER">
                                 <UserDetailPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/owner/payment-history"
+                        element={
+                            <ProtectedRoute requiredRole="OWNER">
+                                <PaymentHistoryPage />
                             </ProtectedRoute>
                         }
                     />
