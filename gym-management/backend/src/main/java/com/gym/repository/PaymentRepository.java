@@ -15,13 +15,22 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     List<Payment> findByUserIdOrderByPaymentDateDesc(Long userId);
 
-    @Query("""
+    @Query(value = """
             SELECT p FROM Payment p
-            JOIN p.user u
+            JOIN FETCH p.user u
+            LEFT JOIN FETCH p.subscription s
+            LEFT JOIN FETCH s.plan
             WHERE p.paymentDate >= :start AND p.paymentDate <= :end
             AND (:search IS NULL OR LOWER(u.name) LIKE LOWER(CONCAT('%', :search, '%'))
                  OR u.phone LIKE CONCAT('%', :search, '%'))
             ORDER BY p.paymentDate DESC
+            """,
+            countQuery = """
+            SELECT COUNT(p) FROM Payment p
+            JOIN p.user u
+            WHERE p.paymentDate >= :start AND p.paymentDate <= :end
+            AND (:search IS NULL OR LOWER(u.name) LIKE LOWER(CONCAT('%', :search, '%'))
+                 OR u.phone LIKE CONCAT('%', :search, '%'))
             """)
     Page<Payment> findAllInDateRangeWithSearch(
             @Param("start") LocalDate start,

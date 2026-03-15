@@ -183,7 +183,6 @@ const PaymentHistoryPage: React.FC = () => {
                                         style={{ color: "#0544A4" }}
                                     />
                                 }
-                                suffix="₹"
                                 valueStyle={{
                                     color: "#0544A4",
                                     fontWeight: 700,
