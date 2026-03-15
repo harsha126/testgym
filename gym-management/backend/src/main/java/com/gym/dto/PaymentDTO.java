@@ -16,6 +16,7 @@ public class PaymentDTO {
     private Long id;
     private Long userId;
     private String userName;
+    private String userPhone;
     private Long subscriptionId;
     private String planName;
     private BigDecimal amount;

@@ -66,6 +66,7 @@ export interface Payment {
     id: number;
     userId: number;
     userName: string;
+    userPhone?: string;
     subscriptionId?: number;
     planName?: string;
     amount: number;
@@ -73,6 +74,15 @@ export interface Payment {
     paymentMethod: string;
     notes?: string;
     createdAt: string;
+}
+
+export interface PaymentHistoryResponse {
+    monthlyTotal: number;
+    yearlyTotal: number;
+    payments: Payment[];
+    totalElements: number;
+    totalPages: number;
+    currentPage: number;
 }
 
 export interface CreatePaymentRequest {
