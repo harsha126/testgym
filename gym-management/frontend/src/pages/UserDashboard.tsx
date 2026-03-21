@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
     Card,
     Typography,
@@ -11,10 +11,12 @@ import {
     Col,
     Empty,
 } from "antd";
-import { CalendarOutlined } from "@ant-design/icons";
+import { CalendarOutlined, TrophyOutlined } from "@ant-design/icons";
 import { useAuthStore } from "../stores/authStore";
 import { useSubscriptionStore } from "../stores/subscriptionStore";
+import { usePersonalTrainingStore } from "../stores/personalTrainingStore";
 import AppHeader from "../components/AppHeader";
+import MyWorkoutPlan from "../components/workout/MyWorkoutPlan";
 import dayjs from "dayjs";
 
 const { Content } = Layout;
@@ -22,6 +24,8 @@ const { Text } = Typography;
 
 const UserDashboard: React.FC = () => {
     const { userId } = useAuthStore();
+    const [isInPT, setIsInPT] = useState(false);
+    const { getByUserId } = usePersonalTrainingStore();
     const {
         subscriptions,
         currentSubscription,
@@ -36,6 +40,9 @@ const UserDashboard: React.FC = () => {
             fetchCurrentSubscription(userId);
             fetchSubscriptions(userId);
             fetchPayments(userId);
+            getByUserId(userId)
+                .then((pt) => setIsInPT(!!pt && pt.isActive))
+                .catch(() => setIsInPT(false));
         }
     }, [userId]);
 
@@ -234,6 +241,7 @@ const UserDashboard: React.FC = () => {
                     style={{
                         borderRadius: 12,
                         boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                        marginBottom: 16,
                     }}
                 >
                     <Table
@@ -245,6 +253,24 @@ const UserDashboard: React.FC = () => {
                         locale={{ emptyText: "No payments recorded" }}
                     />
                 </Card>
+
+                {/* Workout Plan Section - shown only to PT users */}
+                {isInPT && (
+                    <Card
+                        title={
+                            <span style={{ fontFamily: "'Gudea', sans-serif" }}>
+                                <TrophyOutlined style={{ marginRight: 8, color: "#722ed1" }} />
+                                My Workout Plan
+                            </span>
+                        }
+                        style={{
+                            borderRadius: 12,
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                        }}
+                    >
+                        <MyWorkoutPlan />
+                    </Card>
+                )}
             </Content>
         </Layout>
     );

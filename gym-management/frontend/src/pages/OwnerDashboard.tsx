@@ -16,7 +16,9 @@ import {
     Row,
     Col,
     Statistic,
+    Tabs,
 } from "antd";
+import PersonalTrainingTab from "../components/personalTraining/PersonalTrainingTab";
 import {
     SearchOutlined,
     UploadOutlined,
@@ -313,85 +315,79 @@ const OwnerDashboard: React.FC = () => {
                     </Col>
                 </Row>
 
-                <Card
-                    style={{
-                        borderRadius: 12,
-                        boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-                    }}
-                    title={
-                        <div
-                            style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "flex-start",
-                                flexWrap: "wrap",
-                                gap: 12,
-                                paddingTop: 8,
-                                paddingBottom: 8,
-                            }}
-                        >
-                            <Title
-                                level={4}
-                                style={{
-                                    margin: 0,
-                                    fontFamily: "'Gudea', sans-serif",
-                                }}
-                            >
-                                Members
-                            </Title>
-                            <Space wrap>
-                                <Select
-                                    showSearch
-                                    placeholder="Search members..."
-                                    filterOption={false}
-                                    onSearch={(value) => setSearchText(value)}
-                                    loading={searchLoading}
-                                    onSelect={(value: number) =>
-                                        navigate(`/owner/users/${value}`)
-                                    }
-                                    style={{ width: "min(250px, 100%)" }}
-                                    notFoundContent={
-                                        searchText ? "No results" : null
-                                    }
-                                    suffixIcon={<SearchOutlined />}
-                                    allowClear
-                                    onClear={() => setSearchText("")}
-                                >
-                                    {searchResults.map((u) => (
-                                        <Select.Option key={u.id} value={u.id}>
-                                            {u.name} ({u.phone})
-                                        </Select.Option>
-                                    ))}
-                                </Select>
-                                <Button
-                                    icon={<UserAddOutlined />}
-                                    type="primary"
+                <Tabs
+                    defaultActiveKey="members"
+                    size="large"
+                    style={{ fontFamily: "'Gudea', sans-serif" }}
+                    items={[
+                        {
+                            key: "members",
+                            label: "Members",
+                            children: (
+                                <Card
                                     style={{
-                                        background: "#0544A4",
-                                        borderColor: "#0544A4",
+                                        borderRadius: 12,
+                                        boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
                                     }}
-                                    onClick={() =>
-                                        setRegisterModalVisible(true)
-                                    }
-                                >
-                                    Add Member
-                                </Button>
-                                <Upload
-                                    accept=".xlsx"
-                                    showUploadList={false}
-                                    beforeUpload={handleImport}
-                                >
-                                    <Button icon={<UploadOutlined />}>
-                                        Import
-                                    </Button>
-                                </Upload>
-                                <Button
-                                    icon={<DownloadOutlined />}
-                                    onClick={handleExport}
-                                >
-                                    Export
-                                </Button>
-                                <Button
+                                    title={
+                                        <div
+                                            style={{
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                alignItems: "flex-start",
+                                                flexWrap: "wrap",
+                                                gap: 12,
+                                                paddingTop: 8,
+                                                paddingBottom: 8,
+                                            }}
+                                        >
+                                            <Title
+                                                level={4}
+                                                style={{
+                                                    margin: 0,
+                                                    fontFamily: "'Gudea', sans-serif",
+                                                }}
+                                            >
+                                                Members
+                                            </Title>
+                                            <Space wrap>
+                                                <Select
+                                                    showSearch
+                                                    placeholder="Search members..."
+                                                    filterOption={false}
+                                                    onSearch={(value) => setSearchText(value)}
+                                                    loading={searchLoading}
+                                                    onSelect={(value: number) =>
+                                                        navigate(`/owner/users/${value}`)
+                                                    }
+                                                    style={{ width: "min(250px, 100%)" }}
+                                                    notFoundContent={
+                                                        searchText ? "No results" : null
+                                                    }
+                                                    suffixIcon={<SearchOutlined />}
+                                                    allowClear
+                                                    onClear={() => setSearchText("")}
+                                                >
+                                                    {searchResults.map((u) => (
+                                                        <Select.Option key={u.id} value={u.id}>
+                                                            {u.name} ({u.phone})
+                                                        </Select.Option>
+                                                    ))}
+                                                </Select>
+                                                <Button
+                                                    icon={<UserAddOutlined />}
+                                                    type="primary"
+                                                    style={{
+                                                        background: "#0544A4",
+                                                        borderColor: "#0544A4",
+                                                    }}
+                                                    onClick={() =>
+                                                        setRegisterModalVisible(true)
+                                                    }
+                                                >
+                                                    Add Member
+                                                </Button>
+                                                <Button
                                     icon={<DollarCircleOutlined />}
                                     onClick={() =>
                                         navigate("/owner/payment-history")
@@ -399,31 +395,55 @@ const OwnerDashboard: React.FC = () => {
                                 >
                                     Payment History
                                 </Button>
-                            </Space>
-                        </div>
-                    }
-                >
-                    <Table
-                        columns={columns}
-                        dataSource={users}
-                        rowKey="id"
-                        loading={loading}
-                        scroll={{ x: 600 }}
-                        pagination={{
-                            total: totalElements,
-                            current: currentPage + 1,
-                            pageSize: 20,
-                            showSizeChanger: false,
-                            onChange: (page) => fetchUsers(page - 1),
-                        }}
-                        onRow={(record) => ({
-                            onClick: () =>
-                                navigate(`/owner/users/${record.id}`),
-                            style: { cursor: "pointer" },
-                        })}
-                        style={{ fontFamily: "'Gudea', sans-serif" }}
-                    />
-                </Card>
+                                                <Upload
+                                                    accept=".xlsx"
+                                                    showUploadList={false}
+                                                    beforeUpload={handleImport}
+                                                >
+                                                    <Button icon={<UploadOutlined />}>
+                                                        Import
+                                                    </Button>
+                                                </Upload>
+                                                <Button
+                                                    icon={<DownloadOutlined />}
+                                                    onClick={handleExport}
+                                                >
+                                                    Export
+                                                </Button>
+                                            </Space>
+                                        </div>
+                                    }
+                                >
+                                    <Table
+                                        columns={columns}
+                                        dataSource={users}
+                                        rowKey="id"
+                                        loading={loading}
+                                        scroll={{ x: 600 }}
+                                        pagination={{
+                                            total: totalElements,
+                                            current: currentPage + 1,
+                                            pageSize: 20,
+                                            showSizeChanger: false,
+                                            onChange: (page) => fetchUsers(page - 1),
+                                        }}
+                                        onRow={(record) => ({
+                                            onClick: () =>
+                                                navigate(`/owner/users/${record.id}`),
+                                            style: { cursor: "pointer" },
+                                        })}
+                                        style={{ fontFamily: "'Gudea', sans-serif" }}
+                                    />
+                                </Card>
+                            ),
+                        },
+                        {
+                            key: "personal-training",
+                            label: "Personal Training",
+                            children: <PersonalTrainingTab />,
+                        },
+                    ]}
+                />
             </Content>
 
             {/* Register Modal */}

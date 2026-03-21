@@ -9,6 +9,7 @@ export interface User {
     endDate?: string;
     daysLeft?: number;
     subscriptionStatus?: string;
+    isPersonalTraining?: boolean;
 }
 
 export interface LoginRequest {

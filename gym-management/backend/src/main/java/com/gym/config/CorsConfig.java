@@ -22,7 +22,7 @@ public class CorsConfig {
         // Allow any origin pattern to support Cloudflare tunnels and local dev
         configuration.setAllowedOriginPatterns(List.of("*"));
         
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);

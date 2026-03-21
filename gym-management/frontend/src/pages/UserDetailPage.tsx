@@ -23,12 +23,15 @@ import {
     PlusOutlined,
     UserOutlined,
     CalendarOutlined,
+    TrophyOutlined,
 } from "@ant-design/icons";
 import { useSubscriptionStore } from "../stores/subscriptionStore";
 import { getUserById, updateUser } from "../api/users";
 import SubscriptionModal from "../components/SubscriptionModal";
 import NotificationBell from "../components/NotificationBell";
 import { useAuthStore } from "../stores/authStore";
+import EnrollPTModal from "../components/personalTraining/EnrollPTModal";
+import { usePersonalTrainingStore } from "../stores/personalTrainingStore";
 import type { User, Payment } from "../types";
 import dayjs from "dayjs";
 
@@ -50,6 +53,9 @@ const UserDetailPage: React.FC = () => {
     const [user, setUser] = useState<User | null>(null);
     const [subModalVisible, setSubModalVisible] = useState(false);
     const [editModalVisible, setEditModalVisible] = useState(false);
+    const [showEnrollPTModal, setShowEnrollPTModal] = useState(false);
+    const [isInPT, setIsInPT] = useState(false);
+    const { getByUserId } = usePersonalTrainingStore();
     const [editForm, setEditForm] = useState({
         name: "",
         phone: "",
@@ -67,6 +73,14 @@ const UserDetailPage: React.FC = () => {
 
     useEffect(() => {
         loadData();
+    }, [userId]);
+
+    useEffect(() => {
+        if (userId) {
+            getByUserId(userId).then((pt) => {
+                setIsInPT(!!pt && pt.isActive);
+            }).catch(() => setIsInPT(false));
+        }
     }, [userId]);
 
     const handleEditUser = async () => {
@@ -240,6 +254,31 @@ const UserDetailPage: React.FC = () => {
                             >
                                 Edit User
                             </Button>
+                            {!isInPT && (
+                                <Button
+                                    block
+                                    type="primary"
+                                    icon={<TrophyOutlined />}
+                                    style={{
+                                        marginTop: 8,
+                                        background: "#722ed1",
+                                        borderColor: "#722ed1",
+                                    }}
+                                    onClick={() => setShowEnrollPTModal(true)}
+                                >
+                                    Promote to Personal Training
+                                </Button>
+                            )}
+                            {isInPT && (
+                                <Button
+                                    block
+                                    disabled
+                                    icon={<TrophyOutlined />}
+                                    style={{ marginTop: 8 }}
+                                >
+                                    Enrolled in Personal Training ✓
+                                </Button>
+                            )}
                         </Card>
                     </Col>
 
@@ -441,6 +480,18 @@ const UserDetailPage: React.FC = () => {
                               .format("YYYY-MM-DD")
                         : undefined
                 }
+            />
+
+            {/* Enroll PT Modal */}
+            <EnrollPTModal
+                visible={showEnrollPTModal}
+                userId={userId}
+                userName={user.name}
+                onClose={() => setShowEnrollPTModal(false)}
+                onSuccess={() => {
+                    setIsInPT(true);
+                    message.success(`${user.name} promoted to Personal Training!`);
+                }}
             />
 
             {/* Edit User Modal */}

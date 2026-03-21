@@ -96,6 +96,13 @@
             <version>5.2.5</version>
         </dependency>
 
+        <!-- Hypersistence Utils for JSON/JSONB support -->
+        <dependency>
+            <groupId>io.hypersistence</groupId>
+            <artifactId>hypersistence-utils-hibernate-63</artifactId>
+            <version>3.7.3</version>
+        </dependency>
+
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
