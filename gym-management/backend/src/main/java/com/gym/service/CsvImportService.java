@@ -31,7 +31,7 @@ public class CsvImportService {
     private static final String CSV_CLASSPATH = "data/cleaned.csv";
 
     // CSV columns (0-indexed): Add No., Active, Name, Sex, Address, Mobile No.,
-    //                           Monthly Fees, Mode, Payment date, Next Payment
+    // Monthly Fees, Mode, Payment date, Next Payment
     private static final int COL_ACTIVE = 1;
     private static final int COL_NAME = 2;
     private static final int COL_SEX = 3;
@@ -44,7 +44,8 @@ public class CsvImportService {
     @PostConstruct
     private void init() {
         // Mark as already done if non-owner users exist (import was run previously)
-        // DataSeeder always creates exactly 1 USER ("user"). More than 1 means CSV was imported.
+        // DataSeeder always creates exactly 1 USER ("user"). More than 1 means CSV was
+        // imported.
         if (userRepository.countByRole(com.gym.entity.User.Role.USER) > 1) {
             importDone.set(true);
             log.info("CSV import marked as already completed (users exist in DB)");
@@ -89,8 +90,15 @@ public class CsvImportService {
                         continue;
                     }
 
+                    // Handle cases with multiple phone numbers (e.g. "number1 , number2")
+                    phone = phone.split(",")[0].trim();
+                    if (phone.length() > 20) {
+                        phone = phone.substring(0, 20);
+                    }
+
                     String name = row[COL_NAME].trim();
-                    if (name.isBlank()) name = "Unknown";
+                    if (name.isBlank())
+                        name = "Unknown";
 
                     boolean isActive = "Active".equalsIgnoreCase(row[COL_ACTIVE].trim());
                     String gender = row[COL_SEX].trim();
@@ -103,8 +111,10 @@ public class CsvImportService {
                     boolean wasImported = rowImporter.importRow(
                             phone, name, isActive, gender, planName, startDate, endDate, amount);
 
-                    if (wasImported) imported++;
-                    else skipped++;
+                    if (wasImported)
+                        imported++;
+                    else
+                        skipped++;
 
                 } catch (Exception e) {
                     log.warn("Failed to import row {}: {}", lineNum, e.getMessage());
@@ -125,7 +135,8 @@ public class CsvImportService {
     }
 
     private LocalDate parseDate(String value) {
-        if (value == null || value.isBlank()) return null;
+        if (value == null || value.isBlank())
+            return null;
         try {
             return LocalDate.parse(value, DateTimeFormatter.ISO_LOCAL_DATE);
         } catch (Exception e) {
@@ -135,7 +146,8 @@ public class CsvImportService {
     }
 
     private BigDecimal parseAmount(String value) {
-        if (value == null || value.isBlank()) return null;
+        if (value == null || value.isBlank())
+            return null;
         try {
             return new BigDecimal(value);
         } catch (Exception e) {

@@ -13,7 +13,11 @@ public interface UserSubscriptionRepository extends JpaRepository<UserSubscripti
     List<UserSubscription> findByUserIdOrderByCreatedAtDesc(Long userId);
 
     @Query("SELECT us FROM UserSubscription us WHERE us.user.id = :userId AND us.status = 'ACTIVE' ORDER BY us.endDate DESC")
-    Optional<UserSubscription> findCurrentActiveSubscription(@Param("userId") Long userId);
+    List<UserSubscription> findCurrentActiveSubscriptions(@Param("userId") Long userId);
+
+    default Optional<UserSubscription> findCurrentActiveSubscription(Long userId) {
+        return findCurrentActiveSubscriptions(userId).stream().findFirst();
+    }
 
     @Query("SELECT us FROM UserSubscription us WHERE us.status = 'ACTIVE' AND us.endDate = :date")
     List<UserSubscription> findActiveSubscriptionsExpiringOn(@Param("date") LocalDate date);
