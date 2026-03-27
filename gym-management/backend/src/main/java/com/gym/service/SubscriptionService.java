@@ -6,6 +6,7 @@ import com.gym.entity.*;
 import com.gym.exception.ResourceNotFoundException;
 import com.gym.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +17,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SubscriptionService {
 
     private final UserSubscriptionRepository subscriptionRepository;
@@ -37,6 +39,7 @@ public class SubscriptionService {
 
     @Transactional
     public SubscriptionDTO createSubscription(Long userId, CreateSubscriptionRequest request) {
+        log.info("Creating subscription for userId={}, planId={}", userId, request.getPlanId());
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
@@ -45,6 +48,9 @@ public class SubscriptionService {
 
         // Expire any currently active subscriptions
         List<UserSubscription> activeSubs = subscriptionRepository.findActiveByUserId(userId);
+        if (!activeSubs.isEmpty()) {
+            log.info("Expiring {} active subscription(s) for userId={}", activeSubs.size(), userId);
+        }
         for (UserSubscription activeSub : activeSubs) {
             activeSub.setStatus(UserSubscription.Status.EXPIRED);
             subscriptionRepository.save(activeSub);
@@ -75,6 +81,8 @@ public class SubscriptionService {
                 .build();
 
         subscription = subscriptionRepository.save(subscription);
+        log.info("Subscription created: subscriptionId={}, userId={}, plan='{}', {} -> {}",
+                subscription.getId(), userId, plan.getName(), subscription.getStartDate(), endDate);
 
         // Create payment if amount provided
         if (request.getAmount() != null && request.getAmount().doubleValue() > 0) {
@@ -87,6 +95,8 @@ public class SubscriptionService {
                     .notes(request.getPaymentNotes())
                     .build();
             paymentRepository.save(payment);
+            log.info("Payment recorded with subscription: amount={}, method={}",
+                    request.getAmount(), payment.getPaymentMethod());
         }
 
         return toDTO(subscription);

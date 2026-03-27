@@ -2,12 +2,12 @@ package com.gym.controller;
 
 import com.gym.dto.UpdateUserRequest;
 import com.gym.dto.UserDTO;
+import com.gym.dto.UserStatsDTO;
 import com.gym.entity.User;
 import com.gym.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -24,10 +24,19 @@ public class UserController {
     @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<Page<UserDTO>> getUsers(
             @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "false") boolean expiringSoon,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(userService.getUsers(search,
-                PageRequest.of(page, size, Sort.by("name").ascending())));
+        if (expiringSoon) {
+            return ResponseEntity.ok(userService.getExpiringSoonUsers(PageRequest.of(page, size)));
+        }
+        return ResponseEntity.ok(userService.getUsers(search, PageRequest.of(page, size)));
+    }
+
+    @GetMapping("/stats")
+    @PreAuthorize("hasRole('OWNER')")
+    public ResponseEntity<UserStatsDTO> getStats() {
+        return ResponseEntity.ok(userService.getStats());
     }
 
     @GetMapping("/{id}")

@@ -13,31 +13,29 @@ import java.util.List;
 
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
-    List<Payment> findByUserIdOrderByPaymentDateDesc(Long userId);
+        List<Payment> findByUserIdOrderByPaymentDateDesc(Long userId);
 
-    @Query(value = """
-            SELECT p FROM Payment p
-            JOIN FETCH p.user u
-            LEFT JOIN FETCH p.subscription s
-            LEFT JOIN FETCH s.plan
-            WHERE p.paymentDate >= :start AND p.paymentDate <= :end
-            AND (:search IS NULL OR LOWER(u.name) LIKE LOWER(CONCAT('%', :search, '%'))
-                 OR u.phone LIKE CONCAT('%', :search, '%'))
-            ORDER BY p.paymentDate DESC
-            """,
-            countQuery = """
-            SELECT COUNT(p) FROM Payment p
-            JOIN p.user u
-            WHERE p.paymentDate >= :start AND p.paymentDate <= :end
-            AND (:search IS NULL OR LOWER(u.name) LIKE LOWER(CONCAT('%', :search, '%'))
-                 OR u.phone LIKE CONCAT('%', :search, '%'))
-            """)
-    Page<Payment> findAllInDateRangeWithSearch(
-            @Param("start") LocalDate start,
-            @Param("end") LocalDate end,
-            @Param("search") String search,
-            Pageable pageable);
+        @Query(value = """
+                        SELECT p FROM Payment p
+                        JOIN p.user u
+                        LEFT JOIN p.subscription s
+                        WHERE p.paymentDate >= :start AND p.paymentDate <= :end
+                        AND (:search = '' OR LOWER(u.name) LIKE LOWER(CONCAT('%', :search, '%'))
+                             OR u.phone LIKE CONCAT('%', :search, '%'))
+                        ORDER BY p.paymentDate DESC
+                        """, countQuery = """
+                        SELECT COUNT(p) FROM Payment p
+                        JOIN p.user u
+                        WHERE p.paymentDate >= :start AND p.paymentDate <= :end
+                        AND (:search = '' OR LOWER(u.name) LIKE LOWER(CONCAT('%', :search, '%'))
+                             OR u.phone LIKE CONCAT('%', :search, '%'))
+                        """)
+        Page<Payment> findAllInDateRangeWithSearch(
+                        @Param("start") LocalDate start,
+                        @Param("end") LocalDate end,
+                        @Param("search") String search,
+                        Pageable pageable);
 
-    @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.paymentDate >= :start AND p.paymentDate <= :end")
-    BigDecimal sumAmountInDateRange(@Param("start") LocalDate start, @Param("end") LocalDate end);
+        @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.paymentDate >= :start AND p.paymentDate <= :end")
+        BigDecimal sumAmountInDateRange(@Param("start") LocalDate start, @Param("end") LocalDate end);
 }

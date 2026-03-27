@@ -6,12 +6,14 @@ import com.gym.entity.User;
 import com.gym.repository.NotificationRepository;
 import com.gym.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
@@ -36,6 +38,7 @@ public class NotificationService {
     }
 
     public void createAndSendNotification(User user, String type, String title, String message) {
+        log.info("Sending notification to userId={}: type={}, title='{}'", user.getId(), type, title);
         Notification notification = Notification.builder()
                 .user(user)
                 .type(type)
@@ -50,7 +53,7 @@ public class NotificationService {
         try {
             webPushService.sendPushNotification(user, title, message);
         } catch (Exception e) {
-            // Log but don't fail
+            log.warn("Web push failed for userId={}: {}", user.getId(), e.getMessage());
             notification.setSentVia("SMS");
             notificationRepository.save(notification);
         }

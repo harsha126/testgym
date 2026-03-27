@@ -2,6 +2,7 @@ package com.gym.security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -10,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 @Component
+@Slf4j
 public class JwtTokenProvider {
 
     private final SecretKey key;
@@ -23,6 +25,7 @@ public class JwtTokenProvider {
     }
 
     public String generateToken(Long userId, String phone, String role) {
+        log.debug("Generating access token for userId={}, role={}", userId, role);
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expirationMs);
 
@@ -58,8 +61,13 @@ public class JwtTokenProvider {
         try {
             Jwts.parser().verifyWith(key).build().parseSignedClaims(token);
             return true;
-        } catch (JwtException | IllegalArgumentException e) {
-            return false;
+        } catch (ExpiredJwtException e) {
+            log.debug("JWT token expired: {}", e.getMessage());
+        } catch (JwtException e) {
+            log.warn("Invalid JWT token: {}", e.getMessage());
+        } catch (IllegalArgumentException e) {
+            log.warn("JWT token is empty or null: {}", e.getMessage());
         }
+        return false;
     }
 }

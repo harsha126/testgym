@@ -96,6 +96,13 @@
             <version>5.2.5</version>
         </dependency>
 
+        <!-- OpenCSV for CSV import -->
+        <dependency>
+            <groupId>com.opencsv</groupId>
+            <artifactId>opencsv</artifactId>
+            <version>5.9</version>
+        </dependency>
+
         <!-- Hypersistence Utils for JSON/JSONB support -->
         <dependency>
             <groupId>io.hypersistence</groupId>

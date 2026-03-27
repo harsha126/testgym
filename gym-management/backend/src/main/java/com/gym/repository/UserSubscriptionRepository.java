@@ -23,4 +23,10 @@ public interface UserSubscriptionRepository extends JpaRepository<UserSubscripti
 
     @Query("SELECT us FROM UserSubscription us WHERE us.user.id = :userId AND us.status = 'ACTIVE'")
     List<UserSubscription> findActiveByUserId(@Param("userId") Long userId);
+
+    @Query("SELECT COUNT(us) FROM UserSubscription us WHERE us.status = 'ACTIVE'")
+    long countActive();
+
+    @Query("SELECT COUNT(us) FROM UserSubscription us WHERE us.status = 'ACTIVE' AND us.endDate BETWEEN :from AND :to")
+    long countActiveExpiring(@Param("from") LocalDate from, @Param("to") LocalDate to);
 }

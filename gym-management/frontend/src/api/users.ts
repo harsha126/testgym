@@ -3,6 +3,7 @@ import { User, PageResponse } from "../types";
 
 export const getUsers = (params: {
     search?: string;
+    expiringSoon?: boolean;
     page?: number;
     size?: number;
 }) => api.get<PageResponse<User>>("/users", { params });
@@ -15,3 +16,10 @@ export const updateUser = (
 ) => api.put<User>(`/users/${id}`, data);
 
 export const deleteUser = (id: number) => api.delete(`/users/${id}`);
+
+export const getUserStats = () =>
+    api.get<{
+        totalMembers: number;
+        activePlans: number;
+        expiringSoon: number;
+    }>("/users/stats");

@@ -7,6 +7,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,6 +20,7 @@ import java.util.List;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider tokenProvider;
@@ -40,6 +42,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         user, null,
                         List.of(new SimpleGrantedAuthority("ROLE_" + role)));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+                log.debug("Authenticated userId={} role={} for {} {}", userId, role,
+                        request.getMethod(), request.getRequestURI());
+            } else if (user == null) {
+                log.warn("JWT references unknown userId={}", userId);
+            } else {
+                log.warn("Login attempt for deactivated userId={}", userId);
             }
         }
 

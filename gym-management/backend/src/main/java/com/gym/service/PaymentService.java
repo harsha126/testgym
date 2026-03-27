@@ -11,9 +11,11 @@ import com.gym.repository.PaymentRepository;
 import com.gym.repository.UserRepository;
 import com.gym.repository.UserSubscriptionRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -23,81 +25,91 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PaymentService {
 
-    private final PaymentRepository paymentRepository;
-    private final UserRepository userRepository;
-    private final UserSubscriptionRepository subscriptionRepository;
+        private final PaymentRepository paymentRepository;
+        private final UserRepository userRepository;
+        private final UserSubscriptionRepository subscriptionRepository;
 
-    public List<PaymentDTO> getPaymentsByUserId(Long userId) {
-        return paymentRepository.findByUserIdOrderByPaymentDateDesc(userId).stream()
-                .map(this::toDTO)
-                .collect(Collectors.toList());
-    }
-
-    public PaymentDTO createPayment(Long userId, CreatePaymentRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-        Payment payment = Payment.builder()
-                .user(user)
-                .amount(request.getAmount())
-                .paymentDate(request.getPaymentDate())
-                .paymentMethod(request.getPaymentMethod())
-                .notes(request.getNotes())
-                .build();
-
-        if (request.getSubscriptionId() != null) {
-            UserSubscription sub = subscriptionRepository.findById(request.getSubscriptionId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Subscription not found"));
-            payment.setSubscription(sub);
+        public List<PaymentDTO> getPaymentsByUserId(Long userId) {
+                return paymentRepository.findByUserIdOrderByPaymentDateDesc(userId).stream()
+                                .map(this::toDTO)
+                                .collect(Collectors.toList());
         }
 
-        payment = paymentRepository.save(payment);
-        return toDTO(payment);
-    }
+        public PaymentDTO createPayment(Long userId, CreatePaymentRequest request) {
+                log.info("Creating payment for userId={}, amount={}, method={}", userId, request.getAmount(),
+                                request.getPaymentMethod());
+                User user = userRepository.findById(userId)
+                                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-    public PaymentHistoryResponse getPaymentHistory(int year, int month, String search, int page, int size) {
-        LocalDate monthStart = LocalDate.of(year, month, 1);
-        LocalDate monthEnd = YearMonth.of(year, month).atEndOfMonth();
-        LocalDate yearStart = LocalDate.of(year, 1, 1);
-        LocalDate yearEnd = LocalDate.of(year, 12, 31);
+                Payment payment = Payment.builder()
+                                .user(user)
+                                .amount(request.getAmount())
+                                .paymentDate(request.getPaymentDate())
+                                .paymentMethod(request.getPaymentMethod())
+                                .notes(request.getNotes())
+                                .build();
 
-        String searchParam = (search == null || search.isBlank()) ? null : search.trim();
+                if (request.getSubscriptionId() != null) {
+                        UserSubscription sub = subscriptionRepository.findById(request.getSubscriptionId())
+                                        .orElseThrow(() -> new ResourceNotFoundException("Subscription not found"));
+                        payment.setSubscription(sub);
+                }
 
-        Page<Payment> paymentsPage = paymentRepository.findAllInDateRangeWithSearch(
-                monthStart, monthEnd, searchParam, PageRequest.of(page, size));
+                payment = paymentRepository.save(payment);
+                log.info("Payment saved: paymentId={}, userId={}", payment.getId(), userId);
+                return toDTO(payment);
+        }
 
-        BigDecimal monthlyTotal = paymentRepository.sumAmountInDateRange(monthStart, monthEnd);
-        BigDecimal yearlyTotal = paymentRepository.sumAmountInDateRange(yearStart, yearEnd);
+        @Transactional(readOnly = true)
+        public PaymentHistoryResponse getPaymentHistory(int year, int month, String search, int page, int size) {
+                log.debug("Fetching payment history: year={}, month={}, search='{}', page={}", year, month, search,
+                                page);
+                LocalDate monthStart = LocalDate.of(year, month, 1);
+                LocalDate monthEnd = YearMonth.of(year, month).atEndOfMonth();
+                LocalDate yearStart = LocalDate.of(year, 1, 1);
+                LocalDate yearEnd = LocalDate.of(year, 12, 31);
 
-        List<PaymentDTO> paymentDTOs = paymentsPage.getContent().stream()
-                .map(this::toDTO)
-                .collect(Collectors.toList());
+                String searchParam = (search == null || search.isBlank()) ? "" : search.trim();
 
-        return PaymentHistoryResponse.builder()
-                .monthlyTotal(monthlyTotal)
-                .yearlyTotal(yearlyTotal)
-                .payments(paymentDTOs)
-                .totalElements(paymentsPage.getTotalElements())
-                .totalPages(paymentsPage.getTotalPages())
-                .currentPage(paymentsPage.getNumber())
-                .build();
-    }
+                Page<Payment> paymentsPage = paymentRepository.findAllInDateRangeWithSearch(
+                                monthStart, monthEnd, searchParam, PageRequest.of(page, size));
 
-    private PaymentDTO toDTO(Payment payment) {
-        return PaymentDTO.builder()
-                .id(payment.getId())
-                .userId(payment.getUser().getId())
-                .userName(payment.getUser().getName())
-                .userPhone(payment.getUser().getPhone())
-                .subscriptionId(payment.getSubscription() != null ? payment.getSubscription().getId() : null)
-                .planName(payment.getSubscription() != null ? payment.getSubscription().getPlan().getName() : null)
-                .amount(payment.getAmount())
-                .paymentDate(payment.getPaymentDate())
-                .paymentMethod(payment.getPaymentMethod())
-                .notes(payment.getNotes())
-                .createdAt(payment.getCreatedAt())
-                .build();
-    }
+                BigDecimal monthlyTotal = paymentRepository.sumAmountInDateRange(monthStart, monthEnd);
+                BigDecimal yearlyTotal = paymentRepository.sumAmountInDateRange(yearStart, yearEnd);
+
+                List<PaymentDTO> paymentDTOs = paymentsPage.getContent().stream()
+                                .map(this::toDTO)
+                                .collect(Collectors.toList());
+
+                return PaymentHistoryResponse.builder()
+                                .monthlyTotal(monthlyTotal)
+                                .yearlyTotal(yearlyTotal)
+                                .payments(paymentDTOs)
+                                .totalElements(paymentsPage.getTotalElements())
+                                .totalPages(paymentsPage.getTotalPages())
+                                .currentPage(paymentsPage.getNumber())
+                                .build();
+        }
+
+        private PaymentDTO toDTO(Payment payment) {
+                return PaymentDTO.builder()
+                                .id(payment.getId())
+                                .userId(payment.getUser().getId())
+                                .userName(payment.getUser().getName())
+                                .userPhone(payment.getUser().getPhone())
+                                .subscriptionId(payment.getSubscription() != null ? payment.getSubscription().getId()
+                                                : null)
+                                .planName(payment.getSubscription() != null
+                                                ? payment.getSubscription().getPlan().getName()
+                                                : null)
+                                .amount(payment.getAmount())
+                                .paymentDate(payment.getPaymentDate())
+                                .paymentMethod(payment.getPaymentMethod())
+                                .notes(payment.getNotes())
+                                .createdAt(payment.getCreatedAt())
+                                .build();
+        }
 }

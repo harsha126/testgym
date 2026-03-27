@@ -52,6 +52,7 @@ public class WebPushService {
     }
 
     public void registerSubscription(User user, String endpoint, String p256dh, String auth) {
+        log.info("Registering push subscription for userId={}", user.getId());
         // Remove old subscriptions for this user, then add new one
         pushSubscriptionRepository.deleteByUserId(user.getId());
 

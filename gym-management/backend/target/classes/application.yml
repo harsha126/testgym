@@ -24,6 +24,9 @@ spring:
             max-request-size: 10MB
 
 app:
+    csv-import:
+        username: csvadmin
+        password: changeme123
     jwt:
         secret: gym-management-super-secret-key-that-is-at-least-256-bits-long-for-hs256
         expiration-ms: 900000 # 15 minutes
@@ -35,4 +38,9 @@ app:
 
 logging:
     level:
+        root: INFO
         com.gym: DEBUG
+        org.springframework.security: WARN
+        org.hibernate.SQL: WARN
+    pattern:
+        console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

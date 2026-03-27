@@ -42,6 +42,9 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "gender", length = 10)
+    private String gender;
+
     @Column(name = "last_exported_at")
     private LocalDateTime lastExportedAt;
 

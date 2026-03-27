@@ -32,6 +32,7 @@ public class ExcelService {
 
     @Transactional
     public Map<String, Object> importFromExcel(MultipartFile file) throws IOException {
+        log.info("Starting Excel import: file='{}', size={} bytes", file.getOriginalFilename(), file.getSize());
         Workbook workbook = new XSSFWorkbook(file.getInputStream());
         Sheet sheet = workbook.getSheetAt(0);
 
@@ -114,6 +115,7 @@ public class ExcelService {
         }
 
         workbook.close();
+        log.info("Excel import complete: imported={}, skipped={}, errors={}", imported, skipped, errors.size());
 
         Map<String, Object> result = new HashMap<>();
         result.put("imported", imported);
@@ -134,7 +136,9 @@ public class ExcelService {
                 .filter(s -> s.getLastExportedAt() == null || s.getCreatedAt().isAfter(s.getLastExportedAt()))
                 .toList();
 
+        log.info("Starting Excel export: {} users, {} subscriptions to export", users.size(), subscriptions.size());
         if (users.isEmpty() && subscriptions.isEmpty()) {
+            log.info("Nothing new to export");
             return null; // Indicates no data to export
         }
 
@@ -209,6 +213,7 @@ public class ExcelService {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         workbook.write(out);
         workbook.close();
+        log.info("Excel export complete: {} rows written", rowNum - 1);
         return out.toByteArray();
     }
 

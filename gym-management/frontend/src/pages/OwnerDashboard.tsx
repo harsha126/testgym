@@ -33,6 +33,7 @@ import { useUserStore } from "../stores/userStore";
 import { useDebounce } from "../hooks/useDebounce";
 import { importExcel, exportExcel } from "../api/excel";
 import { register } from "../api/auth";
+import { getUserStats } from "../api/users";
 import AppHeader from "../components/AppHeader";
 import type { ColumnsType } from "antd/es/table";
 import type { User } from "../types";
@@ -49,12 +50,19 @@ const OwnerDashboard: React.FC = () => {
         currentPage,
         loading,
         fetchUsers,
+        fetchExpiringSoon,
+        filterMode,
         searchUsers,
         searchResults,
         searchLoading,
     } = useUserStore();
     const [searchText, setSearchText] = useState("");
     const [registerModalVisible, setRegisterModalVisible] = useState(false);
+    const [stats, setStats] = useState({
+        totalMembers: 0,
+        activePlans: 0,
+        expiringSoon: 0,
+    });
     const [registerForm, setRegisterForm] = useState({
         name: "",
         phone: "",
@@ -64,6 +72,9 @@ const OwnerDashboard: React.FC = () => {
 
     useEffect(() => {
         fetchUsers();
+        getUserStats()
+            .then((res) => setStats(res.data))
+            .catch(() => {});
     }, []);
 
     useEffect(() => {
@@ -135,16 +146,8 @@ const OwnerDashboard: React.FC = () => {
         }
     };
 
-    // Dashboard stats
-    const activeUsers = users.filter(
-        (u) => u.subscriptionStatus === "ACTIVE",
-    ).length;
-    const expiringUsers = users.filter(
-        (u) => u.daysLeft !== undefined && u.daysLeft <= 3 && u.daysLeft > 0,
-    ).length;
-    const expiredUsers = users.filter(
-        (u) => u.daysLeft !== undefined && u.daysLeft <= 0,
-    ).length;
+    // Dashboard stats — sourced from /api/users/stats (all members, not just current page)
+    const { totalMembers, activePlans, expiringSoon } = stats;
 
     const columns: ColumnsType<User> = [
         {
@@ -225,9 +228,19 @@ const OwnerDashboard: React.FC = () => {
                 <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                     <Col xs={24} sm={8}>
                         <Card
+                            onClick={() => fetchUsers(0)}
                             style={{
                                 borderRadius: 12,
-                                boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                                boxShadow:
+                                    filterMode === "all"
+                                        ? "0 0 0 2px #0544A4, 0 4px 16px rgba(5,68,164,0.15)"
+                                        : "0 2px 8px rgba(0,0,0,0.06)",
+                                cursor: "pointer",
+                                transition: "box-shadow 0.2s",
+                                border:
+                                    filterMode === "all"
+                                        ? "1.5px solid #0544A4"
+                                        : undefined,
                             }}
                         >
                             <Statistic
@@ -240,7 +253,7 @@ const OwnerDashboard: React.FC = () => {
                                         Total Members
                                     </Text>
                                 }
-                                value={totalElements}
+                                value={totalMembers}
                                 prefix={
                                     <TeamOutlined
                                         style={{ color: "#0544A4" }}
@@ -270,7 +283,7 @@ const OwnerDashboard: React.FC = () => {
                                         Active Plans
                                     </Text>
                                 }
-                                value={activeUsers}
+                                value={activePlans}
                                 prefix={
                                     <CalendarOutlined
                                         style={{ color: "#52c41a" }}
@@ -285,9 +298,19 @@ const OwnerDashboard: React.FC = () => {
                     </Col>
                     <Col xs={24} sm={8}>
                         <Card
+                            onClick={() => fetchExpiringSoon(0)}
                             style={{
                                 borderRadius: 12,
-                                boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                                boxShadow:
+                                    filterMode === "expiringSoon"
+                                        ? "0 0 0 2px #fa8c16, 0 4px 16px rgba(250,140,22,0.18)"
+                                        : "0 2px 8px rgba(0,0,0,0.06)",
+                                cursor: "pointer",
+                                transition: "box-shadow 0.2s",
+                                border:
+                                    filterMode === "expiringSoon"
+                                        ? "1.5px solid #fa8c16"
+                                        : undefined,
                             }}
                         >
                             <Statistic
@@ -300,7 +323,7 @@ const OwnerDashboard: React.FC = () => {
                                         Expiring Soon
                                     </Text>
                                 }
-                                value={expiringUsers}
+                                value={expiringSoon}
                                 prefix={
                                     <WarningOutlined
                                         style={{ color: "#fa8c16" }}
@@ -345,7 +368,8 @@ const OwnerDashboard: React.FC = () => {
                                                 level={4}
                                                 style={{
                                                     margin: 0,
-                                                    fontFamily: "'Gudea', sans-serif",
+                                                    fontFamily:
+                                                        "'Gudea', sans-serif",
                                                 }}
                                             >
                                                 Members
@@ -355,21 +379,36 @@ const OwnerDashboard: React.FC = () => {
                                                     showSearch
                                                     placeholder="Search members..."
                                                     filterOption={false}
-                                                    onSearch={(value) => setSearchText(value)}
+                                                    onSearch={(value) =>
+                                                        setSearchText(value)
+                                                    }
                                                     loading={searchLoading}
                                                     onSelect={(value: number) =>
-                                                        navigate(`/owner/users/${value}`)
+                                                        navigate(
+                                                            `/owner/users/${value}`,
+                                                        )
                                                     }
-                                                    style={{ width: "min(250px, 100%)" }}
+                                                    style={{
+                                                        width: "min(250px, 100%)",
+                                                    }}
                                                     notFoundContent={
-                                                        searchText ? "No results" : null
+                                                        searchText
+                                                            ? "No results"
+                                                            : null
                                                     }
-                                                    suffixIcon={<SearchOutlined />}
+                                                    suffixIcon={
+                                                        <SearchOutlined />
+                                                    }
                                                     allowClear
-                                                    onClear={() => setSearchText("")}
+                                                    onClear={() =>
+                                                        setSearchText("")
+                                                    }
                                                 >
                                                     {searchResults.map((u) => (
-                                                        <Select.Option key={u.id} value={u.id}>
+                                                        <Select.Option
+                                                            key={u.id}
+                                                            value={u.id}
+                                                        >
                                                             {u.name} ({u.phone})
                                                         </Select.Option>
                                                     ))}
@@ -382,25 +421,35 @@ const OwnerDashboard: React.FC = () => {
                                                         borderColor: "#0544A4",
                                                     }}
                                                     onClick={() =>
-                                                        setRegisterModalVisible(true)
+                                                        setRegisterModalVisible(
+                                                            true,
+                                                        )
                                                     }
                                                 >
                                                     Add Member
                                                 </Button>
                                                 <Button
-                                    icon={<DollarCircleOutlined />}
-                                    onClick={() =>
-                                        navigate("/owner/payment-history")
-                                    }
-                                >
-                                    Payment History
-                                </Button>
+                                                    icon={
+                                                        <DollarCircleOutlined />
+                                                    }
+                                                    onClick={() =>
+                                                        navigate(
+                                                            "/owner/payment-history",
+                                                        )
+                                                    }
+                                                >
+                                                    Payment History
+                                                </Button>
                                                 <Upload
                                                     accept=".xlsx"
                                                     showUploadList={false}
                                                     beforeUpload={handleImport}
                                                 >
-                                                    <Button icon={<UploadOutlined />}>
+                                                    <Button
+                                                        icon={
+                                                            <UploadOutlined />
+                                                        }
+                                                    >
                                                         Import
                                                     </Button>
                                                 </Upload>
@@ -420,19 +469,75 @@ const OwnerDashboard: React.FC = () => {
                                         rowKey="id"
                                         loading={loading}
                                         scroll={{ x: 600 }}
+                                        title={() => (
+                                            <div
+                                                style={{
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    gap: 8,
+                                                }}
+                                            >
+                                                <Text
+                                                    type="secondary"
+                                                    style={{
+                                                        fontFamily:
+                                                            "'Gudea', sans-serif",
+                                                        fontSize: 13,
+                                                    }}
+                                                >
+                                                    Showing:
+                                                </Text>
+                                                {filterMode ===
+                                                "expiringSoon" ? (
+                                                    <Tag
+                                                        color="orange"
+                                                        icon={
+                                                            <WarningOutlined />
+                                                        }
+                                                        style={{
+                                                            fontFamily:
+                                                                "'Gudea', sans-serif",
+                                                        }}
+                                                    >
+                                                        Expiring Soon (within 3
+                                                        days)
+                                                    </Tag>
+                                                ) : (
+                                                    <Tag
+                                                        color="blue"
+                                                        icon={<TeamOutlined />}
+                                                        style={{
+                                                            fontFamily:
+                                                                "'Gudea', sans-serif",
+                                                        }}
+                                                    >
+                                                        All Members
+                                                    </Tag>
+                                                )}
+                                            </div>
+                                        )}
                                         pagination={{
                                             total: totalElements,
                                             current: currentPage + 1,
                                             pageSize: 20,
                                             showSizeChanger: false,
-                                            onChange: (page) => fetchUsers(page - 1),
+                                            onChange: (page) =>
+                                                filterMode === "expiringSoon"
+                                                    ? fetchExpiringSoon(
+                                                          page - 1,
+                                                      )
+                                                    : fetchUsers(page - 1),
                                         }}
                                         onRow={(record) => ({
                                             onClick: () =>
-                                                navigate(`/owner/users/${record.id}`),
+                                                navigate(
+                                                    `/owner/users/${record.id}`,
+                                                ),
                                             style: { cursor: "pointer" },
                                         })}
-                                        style={{ fontFamily: "'Gudea', sans-serif" }}
+                                        style={{
+                                            fontFamily: "'Gudea', sans-serif",
+                                        }}
                                     />
                                 </Card>
                             ),
