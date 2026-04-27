@@ -1,6 +1,7 @@
 package com.gym.repository;
 
 import com.gym.entity.Payment;
+import com.gym.entity.UserSubscription;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,6 +15,8 @@ import java.util.List;
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
         List<Payment> findByUserIdOrderByPaymentDateDesc(Long userId);
+
+        void deleteBySubscription(UserSubscription subscription);
 
         @Query(value = """
                         SELECT p FROM Payment p
