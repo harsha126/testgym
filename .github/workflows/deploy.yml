@@ -1,0 +1,97 @@
+# =============================================================
+#  Deploy to VPS on merge to main
+#
+#  Triggers when a pull request targeting `main` is closed AND merged.
+#  Also exposes a manual `workflow_dispatch` button for one-off deploys.
+#
+#  The job SSHes into the VPS and runs `./deploy.sh` from the repo
+#  checkout that lives there.  GitHub-hosted runners cannot reach
+#  your VPS directly, so authentication is via an SSH key stored as
+#  a repository secret.
+#
+#  Required repository secrets (Settings -> Secrets and variables -> Actions):
+#    VPS_HOST          hostname or IP of the VPS
+#    VPS_USER          SSH user to connect as (must own VPS_DEPLOY_PATH)
+#    VPS_SSH_KEY       PEM-encoded private key (the matching public key
+#                      must be in ~VPS_USER/.ssh/authorized_keys)
+#    VPS_DEPLOY_PATH   absolute path of the repo clone on the VPS
+#                      (e.g. /opt/testgym)
+#
+#  Optional repository variables (Settings -> Secrets and variables -> Actions -> Variables):
+#    VPS_PORT          SSH port; defaults to 22
+#
+#  Pre-requisite on the VPS (one-time setup):
+#    - Docker + docker-compose-v2 installed
+#    - The repository cloned at $VPS_DEPLOY_PATH on the `main` branch
+#    - $VPS_DEPLOY_PATH/gym-management/.env populated with real values
+# =============================================================
+
+name: Deploy to VPS
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: vps-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Only run for merged PRs (skip PRs that were closed without merging).
+    # workflow_dispatch always passes this guard.
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Show trigger metadata
+        run: |
+          echo "Event:       ${{ github.event_name }}"
+          echo "Ref:         ${{ github.ref }}"
+          echo "SHA:         ${{ github.sha }}"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "PR:          #${{ github.event.pull_request.number }} - ${{ github.event.pull_request.title }}"
+            echo "Merged by:   ${{ github.event.pull_request.merged_by.login }}"
+            echo "Merge SHA:   ${{ github.event.pull_request.merge_commit_sha }}"
+          fi
+
+      - name: Run deploy.sh on VPS over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ vars.VPS_PORT || 22 }}
+          command_timeout: 25m
+          script_stop: true
+          script: |
+            set -euo pipefail
+            cd "${{ secrets.VPS_DEPLOY_PATH }}"
+            echo "[remote] pwd=$(pwd)"
+            echo "[remote] running ./deploy.sh ..."
+            ./deploy.sh
+
+      - name: Fetch latest deploy log from VPS
+        if: always()
+        uses: appleboy/scp-action@v0.1.7
+        continue-on-error: true
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ vars.VPS_PORT || 22 }}
+          source: "${{ secrets.VPS_DEPLOY_PATH }}/gym-management/logs/deploy-*.log"
+          target: "deploy-logs/"
+          strip_components: 10
+
+      - name: Upload deploy log artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-log-${{ github.run_id }}
+          path: deploy-logs/
+          if-no-files-found: warn
+          retention-days: 30
