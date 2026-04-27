@@ -21,14 +21,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
                         "(LOWER(u.name) LIKE LOWER(CONCAT('%', :search, '%')) OR u.phone LIKE CONCAT('%', :search, '%')) "
                         +
                         "ORDER BY u.updatedAt DESC, " +
-                        "(SELECT MAX(p.paymentDate) FROM Payment p WHERE p.user = u) DESC NULLS LAST", countQuery = "SELECT COUNT(u) FROM User u WHERE u.isActive = true AND u.role = 'USER' AND "
+                        "(SELECT MAX(p.paymentDate) FROM Payment p WHERE p.user = u) DESC NULLS LAST, u.id DESC", countQuery = "SELECT COUNT(u) FROM User u WHERE u.isActive = true AND u.role = 'USER' AND "
                                         +
                                         "(LOWER(u.name) LIKE LOWER(CONCAT('%', :search, '%')) OR u.phone LIKE CONCAT('%', :search, '%'))")
         Page<User> searchUsers(@Param("search") String search, Pageable pageable);
 
         @Query(value = "SELECT u FROM User u WHERE u.isActive = true AND u.role = 'USER' " +
                         "ORDER BY u.updatedAt DESC, " +
-                        "(SELECT MAX(p.paymentDate) FROM Payment p WHERE p.user = u) DESC NULLS LAST", countQuery = "SELECT COUNT(u) FROM User u WHERE u.isActive = true AND u.role = 'USER'")
+                        "(SELECT MAX(p.paymentDate) FROM Payment p WHERE p.user = u) DESC NULLS LAST, u.id DESC", countQuery = "SELECT COUNT(u) FROM User u WHERE u.isActive = true AND u.role = 'USER'")
         Page<User> findAllActiveUsers(Pageable pageable);
 
         @Query(value = "SELECT u FROM User u WHERE u.isActive = true AND u.role = 'USER' " +
