@@ -102,6 +102,18 @@ public class SubscriptionService {
         return toDTO(subscription);
     }
 
+    @Transactional
+    public void deleteSubscription(Long userId, Long subscriptionId) {
+        UserSubscription subscription = subscriptionRepository.findById(subscriptionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Subscription not found"));
+        if (!subscription.getUser().getId().equals(userId)) {
+            throw new ResourceNotFoundException("Subscription not found for this user");
+        }
+        paymentRepository.deleteBySubscription(subscription);
+        subscriptionRepository.delete(subscription);
+        log.info("Deleted subscriptionId={} for userId={}", subscriptionId, userId);
+    }
+
     public List<SubscriptionDTO> getPlans() {
         return planRepository.findByIsActiveTrue().stream()
                 .map(plan -> SubscriptionDTO.builder()
