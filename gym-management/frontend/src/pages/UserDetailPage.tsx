@@ -105,7 +105,10 @@ const UserDetailPage: React.FC = () => {
         try {
             await deleteSubscription(userId, subscriptionId);
             message.success("Subscription deleted");
-            fetchCurrentSubscription(userId);
+            await Promise.all([
+                fetchCurrentSubscription(userId),
+                fetchPayments(userId),
+            ]);
         } catch {
             message.error("Failed to delete subscription");
         }
@@ -466,6 +469,7 @@ const UserDetailPage: React.FC = () => {
                                             type="text"
                                             danger
                                             size="small"
+                                            aria-label="Delete subscription"
                                             icon={<DeleteOutlined />}
                                             style={{ marginLeft: 8, flexShrink: 0 }}
                                         />

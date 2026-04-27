@@ -70,6 +70,9 @@ export const useSubscriptionStore = create<SubscriptionState>((set) => ({
                 state.currentSubscription?.id === subscriptionId
                     ? null
                     : state.currentSubscription,
+            payments: state.payments.filter(
+                (payment) => payment.subscriptionId !== subscriptionId
+            ),
         }));
     },
 
