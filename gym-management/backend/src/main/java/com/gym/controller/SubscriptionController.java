@@ -10,6 +10,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
@@ -39,5 +40,12 @@ public class SubscriptionController {
             @PathVariable Long userId,
             @Valid @RequestBody CreateSubscriptionRequest request) {
         return ResponseEntity.ok(subscriptionService.createSubscription(userId, request));
+    }
+
+    @PostMapping("/subscriptions/expire-past-due")
+    @PreAuthorize("hasRole('OWNER')")
+    public ResponseEntity<Map<String, Object>> expirePastDue() {
+        int updated = subscriptionService.expirePastDueSubscriptions();
+        return ResponseEntity.ok(Map.of("updated", updated));
     }
 }

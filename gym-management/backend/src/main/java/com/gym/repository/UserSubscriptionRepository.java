@@ -1,7 +1,9 @@
 package com.gym.repository;
 
+import com.gym.entity.User;
 import com.gym.entity.UserSubscription;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import java.time.LocalDate;
@@ -33,4 +35,12 @@ public interface UserSubscriptionRepository extends JpaRepository<UserSubscripti
 
     @Query("SELECT COUNT(us) FROM UserSubscription us WHERE us.status = 'ACTIVE' AND us.endDate BETWEEN :from AND :to")
     long countActiveExpiring(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    @Modifying
+    @Query("DELETE FROM UserSubscription us WHERE us.user.id IN (SELECT u.id FROM User u WHERE u.role = :role)")
+    void deleteAllByUserRole(@Param("role") User.Role role);
+
+    @Modifying
+    @Query("UPDATE UserSubscription us SET us.status = 'EXPIRED' WHERE us.status = 'ACTIVE' AND us.endDate < :today")
+    int markPastDueAsExpired(@Param("today") LocalDate today);
 }

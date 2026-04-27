@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn clean *)",
+      "Bash(docker build *)",
+      "Bash(docker exec *)",
+      "Bash(docker cp *)",
+      "Bash(unzip -p /tmp/app.jar BOOT-INF/classes/com/gym/controller/CsvController.class)",
+      "Bash(curl -v -u csvadmin:changeme123 -X DELETE http://localhost:8080/api/csv/reset)",
+      "Bash(curl -u csvadmin:changeme123 -X POST -s -o /dev/null -w \"import: %{http_code}\\\\n\" http://localhost:8080/api/csv/import)",
+      "Bash(curl -u csvadmin:changeme123 -X DELETE -s -o /dev/null -w \"reset: %{http_code}\\\\n\" http://localhost:8080/api/csv/reset)",
+      "Bash(curl -u csvadmin:changeme123 -X GET -s -o /dev/null -w \"get-import: %{http_code}\\\\n\" http://localhost:8080/api/csv/import)",
+      "Bash(curl -u wrong:wrong -X POST -s -o /dev/null -w \"wrong: %{http_code}\\\\n\" http://localhost:8080/api/csv/import)",
+      "Bash(curl -X POST -s -o /dev/null -w \"noauth: %{http_code}\\\\n\" http://localhost:8080/api/csv/import)",
+      "Bash(curl -u csvadmin:changeme123 -X POST -s -o /dev/null -w \"right: %{http_code}\\\\n\" http://localhost:8080/api/csv/import)"
+    ]
+  }
+}

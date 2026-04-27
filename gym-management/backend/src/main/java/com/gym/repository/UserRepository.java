@@ -4,6 +4,7 @@ import com.gym.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import java.time.LocalDate;
@@ -16,6 +17,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
         boolean existsByPhone(String phone);
 
         long countByRole(User.Role role);
+
+        @Modifying
+        @Query("DELETE FROM User u WHERE u.role = :role")
+        void deleteAllByRole(@Param("role") User.Role role);
 
         @Query(value = "SELECT u FROM User u WHERE u.isActive = true AND u.role = 'USER' AND " +
                         "(LOWER(u.name) LIKE LOWER(CONCAT('%', :search, '%')) OR u.phone LIKE CONCAT('%', :search, '%')) "

@@ -30,4 +30,14 @@ public class CsvController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+
+    @DeleteMapping("/reset")
+    public ResponseEntity<Map<String, Object>> resetImport() {
+        try {
+            Map<String, Object> result = csvImportService.resetImport();
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }

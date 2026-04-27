@@ -46,7 +46,7 @@ public class UserSubscription {
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
+        if (createdAt == null) createdAt = LocalDateTime.now();
     }
 
     public enum Status {
