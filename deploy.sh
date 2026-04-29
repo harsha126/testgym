@@ -26,10 +26,12 @@ set -Eeuo pipefail
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_DIR="$REPO_DIR/gym-management"
 LOG_DIR="$APP_DIR/logs"
+LOG_RETENTION_DAYS="${LOG_RETENTION_DAYS:-30}"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 LOG_FILE="$LOG_DIR/deploy-$TIMESTAMP.log"
 
 mkdir -p "$LOG_DIR"
+find "$LOG_DIR" -maxdepth 1 -type f -name 'deploy-*.log' -mtime +"$LOG_RETENTION_DAYS" -delete 2>/dev/null || true
 : > "$LOG_FILE"
 
 # ---- Colors (terminal only; stripped from log file) ----
@@ -215,6 +217,9 @@ require_cmd docker
 require_cmd git
 require_cmd curl
 require_cmd sed
+require_cmd grep
+require_cmd tee
+require_cmd head
 
 if ! docker compose version >/dev/null 2>&1; then
     log_error "'docker compose' plugin is not available. Install Docker Compose v2."
