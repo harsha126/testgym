@@ -16,6 +16,7 @@ import {
     Input,
     message,
     Layout,
+    Popconfirm,
 } from "antd";
 import {
     ArrowLeftOutlined,
@@ -24,6 +25,7 @@ import {
     UserOutlined,
     CalendarOutlined,
     TrophyOutlined,
+    DeleteOutlined,
 } from "@ant-design/icons";
 import { useSubscriptionStore } from "../stores/subscriptionStore";
 import { getUserById, updateUser } from "../api/users";
@@ -49,6 +51,7 @@ const UserDetailPage: React.FC = () => {
         fetchSubscriptions,
         fetchCurrentSubscription,
         fetchPayments,
+        deleteSubscription,
     } = useSubscriptionStore();
     const [user, setUser] = useState<User | null>(null);
     const [subModalVisible, setSubModalVisible] = useState(false);
@@ -95,6 +98,19 @@ const UserDetailPage: React.FC = () => {
             loadData();
         } catch (err: any) {
             message.error(err.response?.data?.error || "Update failed");
+        }
+    };
+
+    const handleDeleteSubscription = async (subscriptionId: number) => {
+        try {
+            await deleteSubscription(userId, subscriptionId);
+            message.success("Subscription deleted");
+            await Promise.all([
+                fetchCurrentSubscription(userId),
+                fetchPayments(userId),
+            ]);
+        } catch {
+            message.error("Failed to delete subscription");
         }
     };
 
@@ -407,38 +423,57 @@ const UserDetailPage: React.FC = () => {
                                       ? "red"
                                       : "gray",
                             children: (
-                                <div>
-                                    <Text strong>{sub.planName}</Text>
-                                    <br />
-                                    <Text type="secondary">
-                                        {dayjs(sub.startDate).format(
-                                            "DD MMM YYYY",
-                                        )}{" "}
-                                        →{" "}
-                                        {dayjs(sub.endDate).format(
-                                            "DD MMM YYYY",
-                                        )}
-                                    </Text>
-                                    <br />
-                                    <Tag
-                                        color={
-                                            sub.status === "ACTIVE"
-                                                ? "green"
-                                                : "red"
-                                        }
-                                    >
-                                        {sub.status}
-                                    </Tag>
-                                    {sub.notes && (
-                                        <Text
-                                            style={{
-                                                marginLeft: 8,
-                                                fontSize: 12,
-                                            }}
-                                        >
-                                            {sub.notes}
+                                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+                                    <div>
+                                        <Text strong>{sub.planName}</Text>
+                                        <br />
+                                        <Text type="secondary">
+                                            {dayjs(sub.startDate).format(
+                                                "DD MMM YYYY",
+                                            )}{" "}
+                                            →{" "}
+                                            {dayjs(sub.endDate).format(
+                                                "DD MMM YYYY",
+                                            )}
                                         </Text>
-                                    )}
+                                        <br />
+                                        <Tag
+                                            color={
+                                                sub.status === "ACTIVE"
+                                                    ? "green"
+                                                    : "red"
+                                            }
+                                        >
+                                            {sub.status}
+                                        </Tag>
+                                        {sub.notes && (
+                                            <Text
+                                                style={{
+                                                    marginLeft: 8,
+                                                    fontSize: 12,
+                                                }}
+                                            >
+                                                {sub.notes}
+                                            </Text>
+                                        )}
+                                    </div>
+                                    <Popconfirm
+                                        title="Delete this subscription?"
+                                        description="Associated payments will also be removed."
+                                        onConfirm={() => handleDeleteSubscription(sub.id)}
+                                        okText="Delete"
+                                        okButtonProps={{ danger: true }}
+                                        cancelText="Cancel"
+                                    >
+                                        <Button
+                                            type="text"
+                                            danger
+                                            size="small"
+                                            aria-label="Delete subscription"
+                                            icon={<DeleteOutlined />}
+                                            style={{ marginLeft: 8, flexShrink: 0 }}
+                                        />
+                                    </Popconfirm>
                                 </div>
                             ),
                         }))}

@@ -3,6 +3,7 @@ import {
     getSubscriptions,
     getCurrentSubscription,
     getSubscriptionPlans,
+    deleteSubscription as deleteSubscriptionApi,
 } from "../api/subscriptions";
 import { getPayments } from "../api/payments";
 import { Subscription, SubscriptionPlan, Payment } from "../types";
@@ -17,6 +18,7 @@ interface SubscriptionState {
     fetchCurrentSubscription: (userId: number) => Promise<void>;
     fetchPlans: () => Promise<void>;
     fetchPayments: (userId: number) => Promise<void>;
+    deleteSubscription: (userId: number, subscriptionId: number) => Promise<void>;
     clear: () => void;
 }
 
@@ -58,6 +60,20 @@ export const useSubscriptionStore = create<SubscriptionState>((set) => ({
             const response = await getPayments(userId);
             set({ payments: response.data });
         } catch {}
+    },
+
+    deleteSubscription: async (userId: number, subscriptionId: number) => {
+        await deleteSubscriptionApi(userId, subscriptionId);
+        set((state) => ({
+            subscriptions: state.subscriptions.filter((s) => s.id !== subscriptionId),
+            currentSubscription:
+                state.currentSubscription?.id === subscriptionId
+                    ? null
+                    : state.currentSubscription,
+            payments: state.payments.filter(
+                (payment) => payment.subscriptionId !== subscriptionId
+            ),
+        }));
     },
 
     clear: () =>

@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.http.HttpStatus;
 import java.util.List;
 import java.util.Map;
 
@@ -32,6 +33,15 @@ public class SubscriptionController {
     @GetMapping("/users/{userId}/subscriptions/current")
     public ResponseEntity<SubscriptionDTO> getCurrentSubscription(@PathVariable Long userId) {
         return ResponseEntity.ok(subscriptionService.getCurrentSubscription(userId));
+    }
+
+    @DeleteMapping("/users/{userId}/subscriptions/{subscriptionId}")
+    @PreAuthorize("hasRole('OWNER')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteSubscription(
+            @PathVariable Long userId,
+            @PathVariable Long subscriptionId) {
+        subscriptionService.deleteSubscription(userId, subscriptionId);
     }
 
     @PostMapping("/users/{userId}/subscriptions")

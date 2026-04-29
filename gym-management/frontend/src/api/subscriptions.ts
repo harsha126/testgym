@@ -18,3 +18,6 @@ export const createSubscription = (
     userId: number,
     data: CreateSubscriptionRequest,
 ) => api.post<Subscription>(`/users/${userId}/subscriptions`, data);
+
+export const deleteSubscription = (userId: number, subscriptionId: number) =>
+    api.delete(`/users/${userId}/subscriptions/${subscriptionId}`);
