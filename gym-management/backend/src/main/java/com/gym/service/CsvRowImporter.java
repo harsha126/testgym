@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -24,27 +25,35 @@ public class CsvRowImporter {
         private final PasswordEncoder passwordEncoder;
 
         /**
-         * Imports a single CSV row in its own transaction.
-         * If the user already exists (duplicate phone), still creates the subscription
-         * + payment.
-         * Throws on validation or DB error so the caller can record it.
+         * @param userCreatedAt earliest payment date across all rows for this phone —
+         *                      used as User.createdAt on first insert
+         * @param resolvedName  last name seen for this phone across the full CSV
          */
         @Transactional(propagation = Propagation.REQUIRES_NEW)
-        public boolean importRow(String phone, String name, boolean isActive, String gender,
+        public boolean importRow(String phone, String resolvedName, boolean isActive, String gender,
                         String planName, LocalDate startDate, LocalDate endDate,
-                        BigDecimal amount) {
+                        BigDecimal amount, LocalDateTime userCreatedAt) {
+
+                LocalDateTime rowTimestamp = startDate != null ? startDate.atStartOfDay() : userCreatedAt;
 
                 User user = userRepository.findByPhone(phone).orElseGet(() -> {
                         String password = phone.substring(Math.max(0, phone.length() - 4)) + "gym";
                         return userRepository.save(User.builder()
-                                        .name(name)
+                                        .name(resolvedName)
                                         .phone(phone)
                                         .password(passwordEncoder.encode(password))
                                         .role(User.Role.USER)
                                         .isActive(isActive)
                                         .gender(gender.isEmpty() ? null : gender)
+                                        .createdAt(userCreatedAt)
                                         .build());
                 });
+
+                // Keep last name up to date for duplicate-phone rows
+                if (!resolvedName.equals(user.getName())) {
+                        user.setName(resolvedName);
+                        userRepository.save(user);
+                }
 
                 SubscriptionPlan plan = planRepository.findByNameIgnoreCase(planName)
                                 .orElseGet(() -> planRepository.findByNameIgnoreCase("Custom").orElseThrow());
@@ -55,24 +64,24 @@ public class CsvRowImporter {
                                 ? UserSubscription.Status.EXPIRED
                                 : UserSubscription.Status.ACTIVE;
 
-                UserSubscription sub = UserSubscription.builder()
+                UserSubscription sub = subscriptionRepository.save(UserSubscription.builder()
                                 .user(user)
                                 .plan(plan)
                                 .startDate(effectiveStart)
                                 .endDate(effectiveEnd)
                                 .status(status)
-                                .build();
-                sub = subscriptionRepository.save(sub);
+                                .createdAt(rowTimestamp)
+                                .build());
 
                 if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
-                        Payment payment = Payment.builder()
+                        paymentRepository.save(Payment.builder()
                                         .user(user)
                                         .subscription(sub)
                                         .amount(amount)
                                         .paymentDate(effectiveStart)
                                         .paymentMethod("CASH")
-                                        .build();
-                        paymentRepository.save(payment);
+                                        .createdAt(rowTimestamp)
+                                        .build());
                 }
 
                 return true;

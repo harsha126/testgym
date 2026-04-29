@@ -42,6 +42,9 @@ public class AuthController {
             HttpServletResponse response) {
 
         String refreshToken = extractRefreshTokenFromCookie(request);
+        if (refreshToken == null) {
+            throw new com.gym.exception.UnauthorizedException("Refresh token missing");
+        }
         AuthService.RefreshResult result = authService.refresh(refreshToken);
         addRefreshTokenCookie(response, result.rawRefreshToken());
         return ResponseEntity.ok(Map.of("accessToken", result.accessToken()));

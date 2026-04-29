@@ -4,6 +4,7 @@ import com.gym.service.CsvImportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -11,6 +12,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/csv")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('CSV_IMPORTER')")
 public class CsvController {
 
     private final CsvImportService csvImportService;
@@ -26,6 +28,16 @@ public class CsvController {
             return ResponseEntity.ok(result);
         } catch (IllegalStateException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/reset")
+    public ResponseEntity<Map<String, Object>> resetImport() {
+        try {
+            Map<String, Object> result = csvImportService.resetImport();
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
