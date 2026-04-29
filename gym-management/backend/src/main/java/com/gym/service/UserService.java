@@ -102,15 +102,17 @@ public class UserService {
                 .createdAt(user.getCreatedAt())
                 .build();
 
-        // Attach current subscription info
-        subscriptionRepository.findCurrentActiveSubscription(user.getId())
-                .ifPresent(sub -> {
-                    dto.setCurrentPlan(sub.getPlan().getName());
-                    dto.setEndDate(sub.getEndDate().toString());
-                    long daysLeft = ChronoUnit.DAYS.between(LocalDate.now(), sub.getEndDate());
-                    dto.setDaysLeft(Math.max(0, daysLeft));
-                    dto.setSubscriptionStatus(sub.getStatus().name());
-                });
+        // Attach current subscription info — prefer ACTIVE, else fall back to latest of any status
+        UserSubscription sub = subscriptionRepository.findCurrentActiveSubscription(user.getId())
+                .orElseGet(() -> subscriptionRepository.findByUserIdOrderByCreatedAtDesc(user.getId())
+                        .stream().findFirst().orElse(null));
+        if (sub != null) {
+            dto.setCurrentPlan(sub.getPlan().getName());
+            dto.setEndDate(sub.getEndDate().toString());
+            long daysLeft = ChronoUnit.DAYS.between(LocalDate.now(), sub.getEndDate());
+            dto.setDaysLeft(Math.max(0, daysLeft));
+            dto.setSubscriptionStatus(sub.getStatus().name());
+        }
 
         return dto;
     }
