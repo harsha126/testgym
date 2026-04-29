@@ -234,13 +234,11 @@ fi
 log_ok "docker daemon reachable"
 
 if [[ ! -f "$APP_DIR/.env" ]]; then
+    log_error ".env not found at $APP_DIR/.env. Refusing to deploy with missing or placeholder credentials."
     if [[ -f "$APP_DIR/.env.example" ]]; then
-        log_warn ".env not found at $APP_DIR/.env -- copying from .env.example (review before re-running on a fresh VPS)."
-        cp "$APP_DIR/.env.example" "$APP_DIR/.env"
-    else
-        log_error "No .env or .env.example found in $APP_DIR. Aborting."
-        exit 1
+        log_error "A template is available at $APP_DIR/.env.example -- copy it, fill in real values, then re-run."
     fi
+    exit 1
 else
     log_ok ".env present at $APP_DIR/.env"
 fi
