@@ -240,11 +240,32 @@ else
     log_ok ".env present at $APP_DIR/.env"
 fi
 
-# Source env so we know which ports to probe.
-set -a
-# shellcheck disable=SC1091
-source "$APP_DIR/.env"
-set +a
+# Safely load .env (KEY=VALUE only) so we know which ports to probe,
+# without executing arbitrary shell from the file.
+load_dotenv_safely() {
+    local file="$1" line key value n=0
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        n=$((n + 1))
+        [[ "$line" =~ ^[[:space:]]*$ ]] && continue
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        if [[ "$line" =~ ^[[:space:]]*(export[[:space:]]+)?([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
+            key="${BASH_REMATCH[2]}"
+            value="${BASH_REMATCH[3]}"
+            value="${value#"${value%%[![:space:]]*}"}"
+            value="${value%"${value##*[![:space:]]}"}"
+            if [[ "$value" =~ ^\"(.*)\"$ ]]; then
+                value="${BASH_REMATCH[1]}"
+            elif [[ "$value" =~ ^\'(.*)\'$ ]]; then
+                value="${BASH_REMATCH[1]}"
+            fi
+            export "$key=$value"
+        else
+            log_error "Invalid line in $file at $n: $line"
+            exit 1
+        fi
+    done < "$file"
+}
+load_dotenv_safely "$APP_DIR/.env"
 : "${BACKEND_PORT:=8080}"
 : "${FRONTEND_PORT:=80}"
 : "${POSTGRES_USER:=gymuser}"

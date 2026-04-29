@@ -112,10 +112,7 @@ public class UserService {
             dto.setEndDate(sub.getEndDate().toString());
             long daysLeft = ChronoUnit.DAYS.between(today, sub.getEndDate());
             dto.setDaysLeft(Math.max(0, daysLeft));
-            boolean expired = sub.getEndDate().isBefore(today);
-            dto.setSubscriptionStatus(expired
-                    ? UserSubscription.Status.EXPIRED.name()
-                    : sub.getStatus().name());
+            dto.setSubscriptionStatus(sub.getStatus().name());
         }
 
         return dto;
