@@ -10,15 +10,19 @@
 #  a repository secret.
 #
 #  Required repository secrets (Settings -> Secrets and variables -> Actions):
-#    VPS_HOST          hostname or IP of the VPS
-#    VPS_USER          SSH user to connect as (must own VPS_DEPLOY_PATH)
-#    VPS_SSH_KEY       PEM-encoded private key (the matching public key
-#                      must be in ~VPS_USER/.ssh/authorized_keys)
-#    VPS_DEPLOY_PATH   absolute path of the repo clone on the VPS
-#                      (e.g. /opt/testgym)
+#    VPS_HOST                    Cloudflare Access SSH hostname (e.g. ssh.example.com)
+#    VPS_USER                    SSH user to connect as (must own VPS_DEPLOY_PATH)
+#    VPS_SSH_KEY                 PEM-encoded private key (matching public key
+#                                must be in ~VPS_USER/.ssh/authorized_keys)
+#    VPS_DEPLOY_PATH             absolute path of repo clone on VPS (e.g. /opt/testgym)
+#    CF_ACCESS_CLIENT_ID         Cloudflare Access service token ID
+#    CF_ACCESS_CLIENT_SECRET     Cloudflare Access service token secret
 #
-#  Optional repository variables (Settings -> Secrets and variables -> Actions -> Variables):
-#    VPS_PORT          SSH port; defaults to 22
+#  VPS reached via Cloudflare Tunnel (port 22 not exposed publicly).
+#  Cloudflare Zero Trust setup (one-time):
+#    1. Tunnel routes ssh.example.com -> ssh://localhost:22 on VPS
+#    2. Access -> Applications -> Self-hosted SSH app for ssh.example.com
+#    3. Access -> Service Auth -> create service token, add policy allowing it
 #
 #  Pre-requisite on the VPS (one-time setup):
 #    - Docker + docker-compose-v2 installed
@@ -58,34 +62,60 @@ jobs:
             echo "Merge SHA:   ${{ github.event.pull_request.merge_commit_sha }}"
           fi
 
+      - name: Install cloudflared
+        run: |
+          curl -sSL -o cloudflared.deb \
+            https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+          sudo dpkg -i cloudflared.deb
+          cloudflared --version
+
+      - name: Configure SSH with cloudflared ProxyCommand
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          cat >> ~/.ssh/config <<EOF
+          Host $VPS_HOST
+            IdentityFile ~/.ssh/id_deploy
+            IdentitiesOnly yes
+            StrictHostKeyChecking accept-new
+            ServerAliveInterval 30
+            ProxyCommand cloudflared access ssh --hostname %h
+          EOF
+          chmod 600 ~/.ssh/config
+
       - name: Run deploy.sh on VPS over SSH
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ vars.VPS_PORT || 22 }}
-          command_timeout: 25m
-          script_stop: true
-          script: |
-            set -euo pipefail
-            cd "${{ secrets.VPS_DEPLOY_PATH }}"
-            echo "[remote] pwd=$(pwd)"
-            echo "[remote] running ./deploy.sh ..."
-            ./deploy.sh
+        env:
+          TUNNEL_SERVICE_TOKEN_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          TUNNEL_SERVICE_TOKEN_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH }}
+        run: |
+          ssh "$VPS_USER@$VPS_HOST" bash -s <<EOF
+          set -euo pipefail
+          cd "$VPS_DEPLOY_PATH"
+          echo "[remote] pwd=\$(pwd)"
+          echo "[remote] running ./deploy.sh ..."
+          ./deploy.sh
+          EOF
 
       - name: Fetch latest deploy log from VPS
         if: always()
-        uses: appleboy/scp-action@v0.1.7
         continue-on-error: true
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ vars.VPS_PORT || 22 }}
-          source: "${{ secrets.VPS_DEPLOY_PATH }}/gym-management/logs/deploy-*.log"
-          target: "deploy-logs/"
-          strip_components: 10
+        env:
+          TUNNEL_SERVICE_TOKEN_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          TUNNEL_SERVICE_TOKEN_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH }}
+        run: |
+          mkdir -p deploy-logs
+          scp "$VPS_USER@$VPS_HOST:$VPS_DEPLOY_PATH/gym-management/logs/deploy-*.log" deploy-logs/ || true
 
       - name: Upload deploy log artifact
         if: always()
